@@ -69,11 +69,11 @@ function scoreChips(q) {
     const isOwn = t.id === own;
     return h('span', {
       class: 'score-chip' + (isOwn ? ' own' : ''), style: `--team:${teamColour(teamIndex(t.id))};--team-ink:${teamInk(teamIndex(t.id))}`,
-      title: isOwn ? "Their own question, so they can't score" : `Give Team ${t.name} a point`,
+      title: isOwn ? "Their own question, so they can't score" : `Give ${t.name} a point`,
     },
       h('button', { class: 'plus', type: 'button', disabled: isOwn, onclick: busy(() => addPoint(t.id, 1)) }, `${t.name} +1`),
       h('span', { class: 'pts' }, String(state.scores[t.id] || 0)),
-      h('button', { class: 'minus', type: 'button', 'aria-label': `Take a point from Team ${t.name}`, onclick: busy(() => addPoint(t.id, -1)) }, icon('minus')));
+      h('button', { class: 'minus', type: 'button', 'aria-label': `Take a point from ${t.name}`, onclick: busy(() => addPoint(t.id, -1)) }, icon('minus')));
   }));
 }
 
@@ -127,7 +127,7 @@ function renderQuestion() {
           h('span', {}, o),
           state.revealed && i === q.correct && icon('check')))),
       state.revealed && h('p', { class: 'asked-by' },
-        'Asked by ', h('b', {}, q.author), ownName ? `. Team ${ownName} can't score this one.` : '.')),
+        'Asked by ', h('b', {}, q.author), ownName ? `. ${ownName} can't score this one.` : '.')),
     controls(state.revealed ? scoreChips(q) : null));
   if (timer) drawTimer();
 }
@@ -160,7 +160,7 @@ function renderEnd() {
     topStrip('Final scores'),
     h('main', { class: 'stage' },
       h('h1', { class: 'winner' }, h('span', { class: 'winner-lead' }, 'And the winner is…'), winners.length
-        ? (winners.length === 1 ? `Team ${winners[0].name}!` : `A tie: ${winners.map(t => t.name).join(' & ')}!`)
+        ? (winners.length === 1 ? `${winners[0].name}!` : `A tie: ${winners.map(t => t.name).join(' & ')}!`)
         : 'Nobody scored. Everyone loses!'),
       winners[0] && h('p', { class: 'lede' }, winners.flatMap(t => t.members.map(m => m.full_name)).join(', ')),
       leaderboard()),

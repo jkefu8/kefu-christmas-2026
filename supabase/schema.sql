@@ -277,7 +277,7 @@ begin
     'my_team', case when v_revealed then v_team end,
     'teams', coalesce((
       select jsonb_agg(jsonb_build_object(
-        'id', t.id, 'name', t.name,
+        'id', t.id, 'name', t.name, 'captain_id', _captain(t.id),
         'size', (select count(*) from team_members m where m.team_id = t.id),
         'members', coalesce((select jsonb_agg(jsonb_build_object('id', pe.id, 'full_name', pe.full_name) order by m.revealed_at)
                              from team_members m join people pe on pe.id = m.person_id
@@ -316,6 +316,29 @@ begin
                            where m.team_id = t.id), '[]')
     ) order by t.id)
     from teams t), '[]');
+end $$;
+
+-- The captain is the first person in a team to spin. Returns null until someone has.
+create or replace function _captain(p_team_id int) returns uuid
+language sql stable security definer set search_path = public as $$
+  select person_id from team_members
+  where team_id = p_team_id and revealed
+  order by revealed_at, person_id limit 1
+$$;
+
+-- The team captain (or the organiser) names the team.
+create or replace function rename_team(p_token uuid, p_team_id int, p_name text) returns void
+language plpgsql security definer set search_path = public, extensions as $$
+declare p people := _person(p_token); v_name text := _clean_name(p_name);
+begin
+  if not p.is_admin and _captain(p_team_id) is distinct from p.id then
+    raise exception 'Only your team captain can change the team name.';
+  end if;
+  if length(v_name) < 2 or length(v_name) > 24 then raise exception 'Team names need 2 to 24 characters.'; end if;
+  if exists (select 1 from teams where lower(name) = lower(v_name) and id <> p_team_id) then
+    raise exception 'Another team already has that name.';
+  end if;
+  update teams set name = v_name where id = p_team_id;
 end $$;
 
 -- Reveals the caller's own team. Spinning twice just shows the same team.
@@ -600,7 +623,7 @@ end $$;
 
 -- ---------- who may call what ----------
 
-revoke execute on function _person(uuid), _admin(uuid), _find_person(text), _suggest(text) from public, anon, authenticated;
+revoke execute on function _person(uuid), _admin(uuid), _find_person(text), _suggest(text), _captain(int) from public, anon, authenticated;
 grant execute on function
   register(text, text), login(text, text), logout(uuid), me(uuid), people_list(uuid),
   teams_view(uuid), save_teams(uuid, jsonb), spin(uuid), admin_reveal_all(uuid), admin_place_person(uuid, uuid),
@@ -609,5 +632,6 @@ grant execute on function
   admin_add_guest(uuid, text, uuid), admin_reset_pin(uuid, uuid, text), admin_remove_person(uuid, uuid),
   quiz_night_get(uuid), quiz_night_set(uuid, jsonb, int, boolean), quiz_scores_view(uuid),
   quiz_score_add(uuid, int, int), quiz_scores_reset(uuid),
-  tournament_view(uuid), tournament_set(uuid, jsonb, jsonb), admin_teams_full(uuid)
+  tournament_view(uuid), tournament_set(uuid, jsonb, jsonb), admin_teams_full(uuid),
+  rename_team(uuid, int, text)
 to anon;

@@ -155,7 +155,8 @@ function drawWheel(canvas, teams, turnDeg = 0) {
     const upsideDown = Math.cos(mid + (turnDeg * Math.PI) / 180) < 0;
     ctx.rotate(upsideDown ? mid + Math.PI : mid);
     ctx.fillStyle = cssVar(`--team-${(i % TEAM_COLOURS) + 1}-ink`);
-    ctx.font = `${teams.length > 8 ? 13 : 17}px ${cssVar('--font-display')}`;
+    let px = teams.length > 8 ? 13 : 17; // shrink captain-chosen names until they fit
+    do { ctx.font = `${px}px ${cssVar('--font-display')}`; } while (ctx.measureText(t.name).width > r - 52 && --px > 9);
     ctx.textAlign = upsideDown ? 'left' : 'right';
     ctx.textBaseline = 'middle';
     ctx.fillText(t.name, upsideDown ? -(r - 18) : r - 18, 0);
@@ -185,16 +186,30 @@ function spinTo(canvas, teams, teamId) {
   return new Promise(res => setTimeout(res, reduce ? 700 : 4700));
 }
 
-// Your team, presented as the prize from the cracker.
-function prizeSlip(view, isNew) {
+// Your team, presented as the prize from the cracker. The captain (first to spin) names it.
+function prizeSlip(view, isNew, onRenamed) {
   const i = view.teams.findIndex(t => t.id === view.my_team), t = view.teams[i];
   const mates = t.members.filter(m => m.id !== me.id).map(m => m.full_name);
   const waiting = t.size - t.members.length;
+  const captain = t.members.find(m => m.id === t.captain_id);
+  let naming = null;
+  if (t.captain_id === me.id) {
+    const input = h('input', { id: 'team-name', maxlength: 24, value: t.name, 'aria-label': 'Team name', autocapitalize: 'words' });
+    naming = h('form', { class: 'team-namer' },
+      h('p', { class: 'label' }, "You're the captain, so you choose the team name."),
+      h('div', { class: 'row' }, input, h('button', { class: 'btn', type: 'submit' }, 'Save name')));
+    naming.addEventListener('submit', async e => {
+      e.preventDefault();
+      try { await call('rename_team', { p_team_id: t.id, p_name: input.value }); toast('Team name saved'); onRenamed?.(); }
+      catch (err) { toast(err.message, true); }
+    });
+  }
   return h('section', { class: 'prize' + (isNew ? ' is-new' : ''), style: `--team:${teamColour(i)}` },
     icon('crown', 'prize-crown'),
-    h('h2', {}, `You're in Team ${t.name}!`),
+    h('h2', {}, `You're in ${t.name}!`),
     h('p', {}, mates.length ? `With ${mates.join(', ')}.` : 'Your teammates appear here as they spin.'),
-    waiting > 0 && h('p', { class: 'prize-wait' }, waiting === 1 ? 'One more still to spin.' : `${waiting} more still to spin.`));
+    waiting > 0 && h('p', { class: 'prize-wait' }, waiting === 1 ? 'One more still to spin.' : `${waiting} more still to spin.`),
+    naming || (captain && h('p', { class: 'prize-wait' }, `${captain.full_name} is captain and picks the team name.`)));
 }
 
 let justSpun = false;
@@ -217,7 +232,7 @@ async function renderTeams(panel) {
 
   if (view.my_team) {
     // Already spun: your team is the prize, then the board. The wheel has done its job.
-    fill(panel, prizeSlip(view, justSpun), boardSection);
+    fill(panel, prizeSlip(view, justSpun, () => renderTeams(panel)), boardSection);
     justSpun = false;
   } else {
     const canvas = h('canvas', { class: 'wheel', width: 320, height: 320, 'aria-hidden': 'true' });
@@ -255,7 +270,8 @@ async function renderTeams(panel) {
       view = next;
       fill(board, teamBoard(view));
       progress.textContent = `${spun()} of ${total} have spun so far.`;
-      if (view.my_team) fill(panel.querySelector('.prize'), ...prizeSlip(view).childNodes);
+      const prize = panel.querySelector('.prize');
+      if (prize && !prize.contains(document.activeElement)) fill(prize, ...prizeSlip(view, false, () => renderTeams(panel)).childNodes);
     } catch { /* try again next tick */ }
   }, POLL_MS);
 }
@@ -440,6 +456,18 @@ async function renderGames(panel) {
 
 // ---------- Beer Pong tournament ----------
 
+const TOURNAMENT_RULES = [
+  'Every team plays. Lose a match and your team is out. Teams with a bye go straight to the semi-finals.',
+  'Two throwers per match. Swap who throws between matches so everyone on the team gets a go.',
+  'Six cups in a triangle at each end, each with a splash of beer. Water or a soft drink is fine for anyone who prefers.',
+  'Take turns throwing, one ball per thrower. Elbows stay behind the edge of the table.',
+  'Sink a cup and the other team drinks it and takes it away. If both throwers sink, you get the balls back.',
+  'A bounce shot counts for two cups, but the other team can swat a bounce away.',
+  'Each team gets one re-rack per match.',
+  'Lose your last cup and each thrower gets one redemption shot. Miss both and the match is over.',
+  'The organiser has the final say on any argument.',
+];
+
 // Bracket positions that spread the seeds so byes go to the top seeds.
 // size 8 -> [0, 7, 3, 4, 1, 6, 2, 5] (0-based seed numbers).
 function bracketOrder(size) {
@@ -498,9 +526,12 @@ async function renderTournament(box, game) {
   const drawBracket = () => save(shuffle(t.teams.map(x => x.id)), {});
 
   const intro = [
-    h('h2', {}, 'Beer Pong tournament'),
-    h('p', { class: 'lede' }, 'The main event: every team plays, knockout style. Adults only, so please drink responsibly.'),
+    h('div', { class: 'main-game-head' }, h('span', { class: 'main-tag' }, 'Main game'), h('h2', {}, 'Beer Pong tournament')),
+    h('p', { class: 'lede' }, 'Every team plays, knockout style. Adults only, so please drink responsibly.'),
+    h('h3', { class: 'slip-sub' }, 'Tournament rules'),
+    h('ul', { class: 'rules' }, TOURNAMENT_RULES.map(r => h('li', {}, r))),
     howToPlay(game),
+    h('h3', { class: 'slip-sub' }, 'The bracket'),
   ];
   if (!t.teams.length) {
     return fill(box, intro, h('p', { class: 'lede' }, 'The bracket appears here once the teams have been drawn.'));
@@ -526,7 +557,7 @@ async function renderTournament(box, game) {
     if (!canPick) return h('div', { class: cls }, label);
     return h('button', {
       class: cls, type: 'button', 'aria-pressed': m.winner === id,
-      title: m.winner === id ? 'Tap again to undo' : `Team ${name(id)} won`,
+      title: m.winner === id ? 'Tap again to undo' : `${name(id)} won`,
       onclick: busy(() => {
         const results = { ...t.results };
         if (results[m.key] === id) delete results[m.key]; else results[m.key] = id;
@@ -537,7 +568,7 @@ async function renderTournament(box, game) {
 
   fill(box, intro,
     champion != null
-      ? h('p', { class: 'champion' }, icon('trophy'), `Team ${name(champion)} are the Beer Pong champions!`)
+      ? h('p', { class: 'champion' }, icon('trophy'), `${name(champion)} are the Beer Pong champions!`)
       : h('p', { class: 'lede' }, me.is_admin ? 'Tap the winning team of each match. Tap again to undo.' : 'Winners move on automatically. The organiser records each result.'),
     h('div', { class: 'bracket-scroll' }, h('div', { class: 'bracket' }, rounds.map((ms, r) =>
       h('section', { class: 'round' },
@@ -580,6 +611,18 @@ function drawTeams(people) {
     }
   }
   throw new Error("Couldn't split up every couple. Check the partner list.");
+}
+
+// Organiser override for a team name (captains normally choose their own).
+function renameControl(t, done) {
+  const input = h('input', { id: 'rename-' + t.id, maxlength: 24, value: t.name, 'aria-label': `New name for ${t.name}` });
+  const form = h('form', { class: 'rename' }, input, h('button', { class: 'btn ghost small', type: 'submit' }, 'Rename'));
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    try { await call('rename_team', { p_team_id: t.id, p_name: input.value }); toast('Team renamed'); done(); }
+    catch (err) { toast(err.message, true); }
+  });
+  return form;
 }
 
 async function renderAdmin(panel) {
@@ -633,7 +676,7 @@ async function renderAdmin(panel) {
     h('p', { class: 'hint' }, `${people.filter(p => p.signed_up).length} signed up. Forgot their PIN? Type a new one next to their name and tell them.`),
     people.map(p => {
       const pin = h('input', { id: 'pin-' + p.id, inputmode: 'numeric', maxlength: 4, placeholder: 'New PIN', 'aria-label': `New PIN for ${p.full_name}` });
-      const drawState = !hasDraw ? null : p.spun ? `Team ${teamOf[p.id]}` : p.in_draw ? 'Not spun yet' : 'Not in draw';
+      const drawState = !hasDraw ? null : p.spun ? teamOf[p.id] : p.in_draw ? 'Not spun yet' : 'Not in draw';
       return h('div', { class: 'person-row' },
         h('div', { class: 'name' },
           h('span', {}, p.full_name),
@@ -680,7 +723,8 @@ async function renderAdmin(panel) {
           icon('crown', 'crown'),
           h('span', { class: 'team-count' }, `${t.members.filter(m => m.spun).length}/${t.members.length} spun`),
           h('h4', {}, t.name)),
-        h('ul', {}, t.members.map(m => h('li', { class: m.spun ? '' : 'slot' }, m.full_name)))))));
+        h('ul', {}, t.members.map(m => h('li', { class: m.spun ? '' : 'slot' }, m.full_name))),
+        renameControl(t, () => renderAdmin(panel))))));
 
   fill(panel, drawBox, fullBox, tvBox, peopleBox, quizBox);
 }
