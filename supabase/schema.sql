@@ -621,6 +621,26 @@ begin
   delete from people where id = p_person_id;
 end $$;
 
+-- Organiser backup: everything the site holds, except PINs and logins.
+create or replace function admin_export(p_token uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _admin(p_token);
+  return jsonb_build_object(
+    'exported_at', now(),
+    'people', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'full_name', full_name, 'partner_id', partner_id,
+                                 'aliases', aliases, 'is_admin', is_admin, 'signed_up', pin_hash is not null, 'created_at', created_at)
+                                 order by full_name) from people), '[]'),
+    'teams', coalesce((select jsonb_agg(to_jsonb(t) order by t.id) from teams t), '[]'),
+    'team_members', coalesce((select jsonb_agg(to_jsonb(m)) from team_members m), '[]'),
+    'quiz_questions', coalesce((select jsonb_agg(to_jsonb(q) order by q.id) from quiz_questions q), '[]'),
+    'games', coalesce((select jsonb_agg(to_jsonb(g) order by g.id) from games g), '[]'),
+    'votes', coalesce((select jsonb_agg(to_jsonb(v)) from votes v), '[]'),
+    'tournament', (select to_jsonb(x) from tournament x where id = 1),
+    'quiz_night', (select to_jsonb(x) from quiz_night x where id = 1),
+    'quiz_scores', coalesce((select jsonb_agg(to_jsonb(x)) from quiz_scores x), '[]'));
+end $$;
+
 -- ---------- who may call what ----------
 
 revoke execute on function _person(uuid), _admin(uuid), _find_person(text), _suggest(text), _captain(int) from public, anon, authenticated;
@@ -633,5 +653,5 @@ grant execute on function
   quiz_night_get(uuid), quiz_night_set(uuid, jsonb, int, boolean), quiz_scores_view(uuid),
   quiz_score_add(uuid, int, int), quiz_scores_reset(uuid),
   tournament_view(uuid), tournament_set(uuid, jsonb, jsonb), admin_teams_full(uuid),
-  rename_team(uuid, int, text)
+  rename_team(uuid, int, text), admin_export(uuid)
 to anon;

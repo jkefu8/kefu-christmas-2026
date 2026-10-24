@@ -614,6 +614,18 @@ function drawTeams(people) {
   throw new Error("Couldn't split up every couple. Check the partner list.");
 }
 
+async function downloadBackup() {
+  const data = await call('admin_export');
+  const stamp = new Date().toISOString().slice(0, 16).replace('T', '-').replace(':', '');
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  const a = h('a', { href: url, download: `xmas-for-the-ages-backup-${stamp}.json` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('Backup downloaded');
+}
+
 // Organiser override for a team name (captains normally choose their own).
 function renameControl(t, done) {
   const input = h('input', { id: 'rename-' + t.id, maxlength: 24, value: t.name, 'aria-label': `New name for ${t.name}` });
@@ -683,7 +695,7 @@ async function renderAdmin(panel) {
           h('span', {}, p.full_name),
           h('span', { class: 'hint' }, [
             p.signed_up ? 'Signed up' : 'Not signed up',
-            p.partner_id && byId[p.partner_id] ? `with ${byId[p.partner_id].full_name}` : null,
+            p.partner_id && byId[p.partner_id] ? `Partner: ${byId[p.partner_id].full_name}` : null,
             drawState,
           ].filter(Boolean).join(' · '))),
         p.signed_up && pin,
@@ -727,7 +739,12 @@ async function renderAdmin(panel) {
         h('ul', {}, t.members.map(m => h('li', { class: m.spun ? '' : 'slot' }, m.full_name))),
         renameControl(t, () => renderAdmin(panel))))));
 
-  fill(panel, drawBox, fullBox, tvBox, peopleBox, quizBox);
+  const backupBox = h('section', { class: 'card stack' },
+    h('h2', {}, 'Backup'),
+    h('p', { class: 'lede' }, 'Saves everything (guests, teams, quiz questions with photos, votes, the bracket and scores) to a file on this device. PINs are left out. Keep the file private, since it has everyone\'s names.'),
+    h('button', { class: 'btn', type: 'button', onclick: busy(downloadBackup) }, 'Download a backup'));
+
+  fill(panel, drawBox, fullBox, tvBox, peopleBox, quizBox, backupBox);
 }
 
 // ---------- start ----------
