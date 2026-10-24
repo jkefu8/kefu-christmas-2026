@@ -6,6 +6,7 @@
 -- the functions below, and each one checks the caller's session token.
 
 create extension if not exists pgcrypto with schema extensions;
+create extension if not exists fuzzystrmatch with schema extensions; -- levenshtein() for "did you mean"
 
 -- ---------- tables ----------
 
@@ -64,6 +65,8 @@ create table if not exists votes (
 -- A guest pre-loaded by the organiser has no PIN until they sign up.
 alter table people alter column pin_hash drop not null;
 alter table people add column if not exists partner_id uuid references people on delete set null;
+-- v3: other ways someone might type their name, lowercased ("liv kefu", "joshua kefu", "nate allen").
+alter table people add column if not exists aliases text[] not null default '{}';
 
 -- Teams are drawn in secret; each person's spin reveals their own team.
 alter table team_members add column if not exists revealed    boolean not null default false;
@@ -116,37 +119,84 @@ $$;
 
 -- ---------- sign up / log in ----------
 
--- Signing up claims your spot on the guest list and sets your PIN.
-create or replace function register(p_name text, p_pin text) returns uuid
-language plpgsql security definer set search_path = public, extensions as $$
-declare v_name text := _clean_name(p_name); p people; v_token uuid;
+-- Finds a guest by full name, a nickname, or a first name that only one guest has.
+-- Returns a row of nulls when there's no single clear match.
+create or replace function _find_person(p_name text) returns people
+language plpgsql stable security definer set search_path = public, extensions as $$
+declare v_key text := lower(_clean_name(p_name)); p people; n int;
 begin
-  if v_name = '' then raise exception 'Please enter your full name.'; end if;
-  if coalesce(p_pin, '') !~ '^\d{4}$' then raise exception 'Your PIN must be 4 digits.'; end if;
-  select * into p from people where name_key = lower(v_name);
-  if not found then
-    raise exception '% isn''t on the guest list. Check the spelling, or ask the organiser to add you.', v_name;
+  select * into p from people where name_key = v_key;
+  if found then return p; end if;
+  select count(*) into n from people where v_key = any(aliases);
+  if n = 1 then
+    select * into p from people where v_key = any(aliases);
+    return p;
   end if;
-  if p.pin_hash is not null then
-    raise exception '% has already signed up. Choose "I''ve been here before" to log in.', p.full_name;
+  if v_key <> '' and v_key !~ ' ' then
+    select count(*) into n from people
+    where split_part(name_key, ' ', 1) = v_key or exists (select 1 from unnest(aliases) a where split_part(a, ' ', 1) = v_key);
+    if n = 1 then
+      select * into p from people
+      where split_part(name_key, ' ', 1) = v_key or exists (select 1 from unnest(aliases) a where split_part(a, ' ', 1) = v_key);
+      return p;
+    end if;
   end if;
-  update people set pin_hash = crypt(p_pin, gen_salt('bf')) where id = p.id;
-  insert into sessions (person_id) values (p.id) returning token into v_token;
-  return v_token;
+  return p; -- all nulls
 end $$;
 
--- Returns {token} or {error}. It returns instead of raising so the
--- failed-attempt counter is saved (a raise would roll it back).
+-- Up to three guest names close to what was typed, closest first.
+create or replace function _suggest(p_name text) returns jsonb
+language sql stable security definer set search_path = public, extensions as $$
+  with i as (
+    select k, split_part(k, ' ', 1) as f, regexp_replace(k, '^.* ', '') as l
+    from (select lower(_clean_name(p_name)) as k) x
+  ), scored as (
+    select pe.full_name,
+           least(levenshtein(i.k, pe.name_key),
+                 coalesce((select min(levenshtein(i.k, a)) from unnest(pe.aliases) a), 99)) as d,
+           (i.k ~ ' ' and levenshtein(i.l, regexp_replace(pe.name_key, '^.* ', '')) <= 1
+                      and left(i.f, 1) = left(pe.name_key, 1)) as same_family,
+           (split_part(pe.name_key, ' ', 1) = i.f
+              or exists (select 1 from unnest(pe.aliases) a where split_part(a, ' ', 1) = i.f)) as same_first
+    from people pe, i
+    where i.k <> ''
+  )
+  select coalesce(jsonb_agg(full_name order by d), '[]')
+  from (select full_name, d from scored where d <= 3 or same_family or same_first order by d limit 3) s
+$$;
+
+drop function if exists register(text, text); -- return type changed in v3
+
+-- Signing up claims your spot on the guest list and sets your PIN.
+-- Returns {token, full_name} or {error, suggestions}.
+create or replace function register(p_name text, p_pin text) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare v_name text := _clean_name(p_name); p people := _find_person(p_name); v_token uuid;
+begin
+  if v_name = '' then return jsonb_build_object('error', 'Please enter your name.'); end if;
+  if p.id is null then
+    return jsonb_build_object('error', format('We couldn''t find "%s" on the guest list.', v_name), 'suggestions', _suggest(p_name));
+  end if;
+  if p.pin_hash is not null then
+    return jsonb_build_object('error', format('%s has already signed up. Choose "I''ve been here before" to log in.', p.full_name));
+  end if;
+  if coalesce(p_pin, '') !~ '^\d{4}$' then return jsonb_build_object('error', 'Your PIN must be 4 digits.'); end if;
+  update people set pin_hash = crypt(p_pin, gen_salt('bf')) where id = p.id;
+  insert into sessions (person_id) values (p.id) returning token into v_token;
+  return jsonb_build_object('token', v_token, 'full_name', p.full_name);
+end $$;
+
+-- Returns {token, full_name} or {error, suggestions?}. It returns instead of raising
+-- so the failed-attempt counter is saved (a raise would roll it back).
 create or replace function login(p_name text, p_pin text) returns jsonb
 language plpgsql security definer set search_path = public, extensions as $$
-declare p people; v_token uuid;
+declare p people := _find_person(p_name); v_token uuid;
 begin
-  select * into p from people where name_key = lower(_clean_name(p_name));
-  if not found then
-    return jsonb_build_object('error', 'We couldn''t find that name. Check the spelling.');
+  if p.id is null then
+    return jsonb_build_object('error', 'We couldn''t find that name.', 'suggestions', _suggest(p_name));
   end if;
   if p.pin_hash is null then
-    return jsonb_build_object('error', 'You haven''t chosen a PIN yet. Choose "I''m new here" to set one.');
+    return jsonb_build_object('error', format('%s hasn''t chosen a PIN yet. Choose "I''m new here" to set one.', p.full_name));
   end if;
   if p.locked_until > now() then
     return jsonb_build_object('error', 'Too many wrong PINs. Wait 10 minutes, or ask the organiser to reset your PIN.');
@@ -160,7 +210,7 @@ begin
   end if;
   update people set failed_logins = 0, locked_until = null where id = p.id;
   insert into sessions (person_id) values (p.id) returning token into v_token;
-  return jsonb_build_object('token', v_token);
+  return jsonb_build_object('token', v_token, 'full_name', p.full_name);
 end $$;
 
 create or replace function logout(p_token uuid) returns void
@@ -456,7 +506,7 @@ end $$;
 
 -- ---------- who may call what ----------
 
-revoke execute on function _person(uuid), _admin(uuid) from public, anon, authenticated;
+revoke execute on function _person(uuid), _admin(uuid), _find_person(text), _suggest(text) from public, anon, authenticated;
 grant execute on function
   register(text, text), login(text, text), logout(uuid), me(uuid), people_list(uuid),
   teams_view(uuid), save_teams(uuid, jsonb), spin(uuid), admin_reveal_all(uuid), admin_place_person(uuid, uuid),

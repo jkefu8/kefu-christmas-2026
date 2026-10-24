@@ -228,3 +228,7 @@ select { font: inherit; color: var(--ink); background: var(--bg); border: 1.5px 
 @media (prefers-reduced-motion: no-preference) {
   .bar > span { transition: transform .4s ease; }
 }
+
+/* "Did you mean" under the sign-in error */
+#auth-error { display: flex; flex-direction: column; gap: .5rem; }
+.suggest { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; color: var(--ink); font-weight: 600; }

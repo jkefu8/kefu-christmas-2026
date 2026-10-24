@@ -115,11 +115,27 @@ function setAuthMode(mode) {
   $('#mode-new').setAttribute('aria-selected', isNew);
   $('#mode-back').setAttribute('aria-selected', !isNew);
   $('#auth-intro').textContent = isNew
-    ? "Type your full name as it's on the invite, then choose a 4-digit PIN. You'll use them to get back in."
+    ? "Type your name, then choose a 4-digit PIN. You'll use them to get back in."
     : 'Welcome back. Type your full name and your PIN.';
   $('#auth-pin-hint').hidden = !isNew;
   $('#auth-submit').textContent = isNew ? 'Join the Christmas fun' : 'Log in';
   $('#auth-error').hidden = true;
+}
+
+// Shows the error, plus "Did you mean…" buttons that fill in a close guest name.
+function showAuthError(message, suggestions = []) {
+  const err = $('#auth-error');
+  err.replaceChildren(
+    h('span', {}, message),
+    suggestions.length > 0 && h('span', { class: 'suggest' },
+      h('span', {}, 'Did you mean:'),
+      suggestions.map(n => h('button', {
+        class: 'btn ghost small', type: 'button',
+        onclick: () => { $('#auth-name').value = n; err.hidden = true; $('#auth-pin').focus(); },
+      }, n))),
+    suggestions.length === 0 && message.includes('guest list') &&
+      h('span', { class: 'hint' }, 'Try your full name as it is on the invite, or ask the organiser.'));
+  err.hidden = false;
 }
 
 async function submitAuth(e) {
@@ -131,24 +147,19 @@ async function submitAuth(e) {
   err.hidden = true;
   btn.disabled = true;
   try {
-    let newToken;
-    if (authMode === 'new') {
-      const { data, error } = await sb.rpc('register', { p_name: name, p_pin: pin });
-      if (error) throw new Error(error.message);
-      newToken = data;
-    } else {
-      const { data, error } = await sb.rpc('login', { p_name: name, p_pin: pin });
-      if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
-      newToken = data.token;
+    const { data, error } = await sb.rpc(authMode === 'new' ? 'register' : 'login', { p_name: name, p_pin: pin });
+    if (error) throw new Error(error.message);
+    if (data.error) {
+      showAuthError(data.error, data.suggestions);
+      return;
     }
-    token = newToken;
+    token = data.token;
     store(TOKEN_KEY, token);
     $('#auth-form').reset();
     await boot();
+    toast(`Welcome, ${data.full_name}!`);
   } catch (ex) {
-    err.textContent = ex.message;
-    err.hidden = false;
+    showAuthError(ex.message);
   } finally {
     btn.disabled = false;
   }
