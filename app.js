@@ -130,8 +130,9 @@ function teamBoard(view) {
   }));
 }
 
-// Draws the wheel once; spinning just rotates the canvas with a CSS transition.
-function drawWheel(canvas, teams) {
+// Draws the wheel; spinning just rotates the canvas with a CSS transition.
+// turnDeg is where the wheel rests, so labels on the left half can be flipped the right way up.
+function drawWheel(canvas, teams, turnDeg = 0) {
   const dpr = window.devicePixelRatio || 1;
   const size = 320;
   canvas.width = size * dpr; canvas.height = size * dpr;
@@ -139,7 +140,7 @@ function drawWheel(canvas, teams) {
   ctx.scale(dpr, dpr);
   const r = size / 2, seg = (Math.PI * 2) / teams.length;
   teams.forEach((t, i) => {
-    const start = -Math.PI / 2 + i * seg;
+    const start = -Math.PI / 2 + i * seg, mid = start + seg / 2;
     ctx.beginPath();
     ctx.moveTo(r, r);
     ctx.arc(r, r, r - 4, start, start + seg);
@@ -151,18 +152,24 @@ function drawWheel(canvas, teams) {
     ctx.stroke();
     ctx.save();
     ctx.translate(r, r);
-    ctx.rotate(start + seg / 2);
+    const upsideDown = Math.cos(mid + (turnDeg * Math.PI) / 180) < 0;
+    ctx.rotate(upsideDown ? mid + Math.PI : mid);
     ctx.fillStyle = cssVar(`--team-${(i % TEAM_COLOURS) + 1}-ink`);
     ctx.font = `${teams.length > 8 ? 13 : 17}px ${cssVar('--font-display')}`;
-    ctx.textAlign = 'right';
+    ctx.textAlign = upsideDown ? 'left' : 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText(t.name, r - 18, 0);
+    ctx.fillText(t.name, upsideDown ? -(r - 18) : r - 18, 0);
     ctx.restore();
   });
   ctx.beginPath();
   ctx.arc(r, r, 26, 0, Math.PI * 2);
   ctx.fillStyle = cssVar('--gold');
   ctx.fill();
+}
+
+// The wheel is drawn on a canvas, so wait for the display face before lettering it.
+async function displayFontReady() {
+  try { await document.fonts.load(`17px ${cssVar('--font-display')}`); } catch { /* draw with the fallback */ }
 }
 
 let wheelTurn = 0;
@@ -178,9 +185,22 @@ function spinTo(canvas, teams, teamId) {
   return new Promise(res => setTimeout(res, reduce ? 700 : 4700));
 }
 
+// Your team, presented as the prize from the cracker.
+function prizeSlip(view, isNew) {
+  const i = view.teams.findIndex(t => t.id === view.my_team), t = view.teams[i];
+  const mates = t.members.filter(m => m.id !== me.id).map(m => m.full_name);
+  const waiting = t.size - t.members.length;
+  return h('section', { class: 'prize' + (isNew ? ' is-new' : ''), style: `--team:${teamColour(i)}` },
+    icon('crown', 'prize-crown'),
+    h('h2', {}, `You're in Team ${t.name}!`),
+    h('p', {}, mates.length ? `With ${mates.join(', ')}.` : 'Your teammates appear here as they spin.'),
+    waiting > 0 && h('p', { class: 'prize-wait' }, waiting === 1 ? 'One more still to spin.' : `${waiting} more still to spin.`));
+}
+
+let justSpun = false;
 async function renderTeams(panel) {
+  clearInterval(pollTimer);
   let view = await call('teams_view');
-  const board = h('div', {}, teamBoard(view));
 
   if (!view.teams.length) {
     fill(panel, h('section', { class: 'my-team' },
@@ -189,61 +209,53 @@ async function renderTeams(panel) {
     return;
   }
 
-  const canvas = h('canvas', { class: 'wheel', width: 320, height: 320, 'aria-hidden': 'true' });
-  const status = h('p', { class: 'spin-status', 'aria-live': 'polite' });
-  const spinBtn = h('button', { class: 'btn big', type: 'button' }, 'Spin for my team');
-  let spinning = false;
+  const board = h('div', {}, teamBoard(view));
+  const spun = () => view.teams.reduce((n, t) => n + t.members.length, 0);
+  const total = view.teams.reduce((n, t) => n + t.size, 0);
+  const progress = h('p', { class: 'lede' }, `${spun()} of ${total} have spun so far.`);
+  const boardSection = h('section', { class: 'stack' }, h('h2', { class: 'section-title' }, 'The teams'), progress, board);
 
-  const myTeamName = () => view.teams.find(t => t.id === view.my_team)?.name;
-  function setStatus() {
-    spinBtn.hidden = !view.in_draw || !!view.my_team;
-    if (!view.in_draw) status.textContent = "You're not in the draw yet. Ask the organiser to add you.";
-    else if (view.my_team) status.textContent = `You're in Team ${myTeamName()}!`;
-    else status.textContent = 'Spin the wheel to find out which team you are in.';
-  }
-
-  spinBtn.addEventListener('click', busy(async () => {
-    spinning = true;
-    status.textContent = 'Spinning…';
-    try {
+  if (view.my_team) {
+    // Already spun: your team is the prize, then the board. The wheel has done its job.
+    fill(panel, prizeSlip(view, justSpun), boardSection);
+    justSpun = false;
+  } else {
+    const canvas = h('canvas', { class: 'wheel', width: 320, height: 320, 'aria-hidden': 'true' });
+    const status = h('p', { class: 'spin-status', 'aria-live': 'polite' },
+      view.in_draw ? 'Spin the wheel to find out which team you are in.' : "You're not in the draw yet. Ask the organiser to add you.");
+    const spinBtn = h('button', { class: 'btn big', type: 'button', hidden: !view.in_draw }, 'Spin for my team');
+    spinBtn.addEventListener('click', busy(async () => {
+      clearInterval(pollTimer);
+      status.textContent = 'Spinning…';
       const res = await call('spin');
       await spinTo(canvas, view.teams, res.team_id);
       confetti(canvas);
-      view = await call('teams_view');
-      fill(board, teamBoard(view));
-      setStatus();
-      board.querySelector(`[data-team="${res.team_id}"]`)?.classList.add('just-joined');
-    } finally { spinning = false; }
-  }));
-
-  // Not spun yet: the wheel comes first. Already spun: your team board comes first.
-  const boardSection = h('section', { class: 'stack' },
-      h('h2', { class: 'section-title' }, 'The teams'),
-      h('p', { class: 'lede' }, `${view.teams.reduce((n, t) => n + t.members.length, 0)} of ${view.teams.reduce((n, t) => n + t.size, 0)} have spun so far.`),
-      board);
-  const wheelSection = h('section', { class: 'wheel-box' },
-      h('div', { class: 'wheel-wrap' }, h('div', { class: 'wheel-pointer', 'aria-hidden': 'true' }), canvas),
-      status, spinBtn);
-  fill(panel, view.my_team ? [boardSection, wheelSection] : [wheelSection, boardSection]);
-  drawWheel(canvas, view.teams);
-  if (view.my_team) { // rest the wheel on your team
-    const seg = 360 / view.teams.length, i = view.teams.findIndex(t => t.id === view.my_team);
-    wheelTurn = 360 - (i * seg + seg / 2);
+      justSpun = true;
+      await renderTeams(panel);
+    }));
+    fill(panel,
+      h('section', { class: 'wheel-box' },
+        h('div', { class: 'wheel-wrap' }, h('div', { class: 'wheel-pointer', 'aria-hidden': 'true' }), canvas),
+        status, spinBtn),
+      boardSection);
+    wheelTurn = 0;
     canvas.style.transitionDuration = '0s';
-    canvas.style.transform = `rotate(${wheelTurn}deg)`;
+    canvas.style.transform = 'rotate(0deg)';
+    drawWheel(canvas, view.teams);
+    displayFontReady().then(() => drawWheel(canvas, view.teams));
   }
-  setStatus();
 
   // Keep the board live so everyone sees new names land.
   pollTimer = setInterval(async () => {
-    if (spinning || document.hidden) return;
+    if (document.hidden || panel.querySelector('button:disabled')) return;
     try {
       const next = await call('teams_view');
-      if (JSON.stringify(next) !== JSON.stringify(view)) {
-        view = next;
-        fill(board, teamBoard(view));
-        setStatus();
-      }
+      if (JSON.stringify(next) === JSON.stringify(view)) return;
+      if (next.my_team !== view.my_team) return renderTeams(panel); // revealed by the organiser
+      view = next;
+      fill(board, teamBoard(view));
+      progress.textContent = `${spun()} of ${total} have spun so far.`;
+      if (view.my_team) fill(panel.querySelector('.prize'), ...prizeSlip(view).childNodes);
     } catch { /* try again next tick */ }
   }, POLL_MS);
 }
@@ -274,17 +286,16 @@ async function photoToDataUrl(file) {
   throw new Error('That photo is too big. Try a smaller one.');
 }
 
-function questionCard(x, actions) {
+function questionCard(x, n, actions) {
   return h('li', { class: 'q-item' },
     h('div', { class: 'stack tight' },
-      x.author && h('p', { class: 'hint' }, x.author),
-      h('p', { class: 'q-kind' }, x.kind === 'tf' ? 'True / False' : 'Multiple choice'),
       x.photo && h('img', { class: 'q-photo', src: x.photo, alt: 'Photo for this question' }),
       h('p', { class: 'q-text' }, x.question),
       x.options
         ? h('ul', { class: 'q-options' }, x.options.map((o, i) =>
             h('li', { class: i === x.correct ? 'is-correct' : '' }, i === x.correct && icon('check'), o)))
-        : h('p', { class: 'q-answer' }, h('b', {}, 'Answer: '), x.answer)),
+        : h('p', { class: 'q-answer' }, h('b', {}, 'Answer: '), x.answer),
+      h('p', { class: 'q-meta' }, [`Slip ${n}`, x.kind === 'tf' ? 'True or false' : 'Multiple choice', x.author].filter(Boolean).join(' · '))),
     actions);
 }
 
@@ -367,7 +378,7 @@ async function renderQuiz(panel) {
     form,
     h('h3', {}, mine.length ? `Your questions (${mine.length})` : 'Your questions'),
     mine.length
-      ? h('ol', { class: 'q-list' }, mine.map(x => questionCard(x,
+      ? h('ol', { class: 'q-list' }, mine.map((x, i) => questionCard(x, i + 1,
           confirmButton('Delete', async () => { await call('delete_question', { p_id: x.id }); renderQuiz(panel); }))))
       : h('p', { class: 'hint' }, "You haven't added any yet. Two or three each is plenty."),
   );
@@ -498,7 +509,7 @@ async function renderTournament(box) {
     if (id === undefined) return h('div', { class: 'side tbd' }, 'To be decided');
     const decided = m.winner != null && !m.bye;
     const cls = 'side' + (m.winner === id ? ' won' : decided ? ' lost' : '');
-    const label = [h('span', { class: 'dot', style: `--team:${teamColour(teamIdx[id])}` }), h('span', {}, 'Team ' + name(id)),
+    const label = [h('span', { class: 'dot', style: `--team:${teamColour(teamIdx[id])}` }), h('span', { class: 'side-name' }, name(id)),
       m.winner === id && !m.bye && icon('check')];
     const canPick = me.is_admin && !m.bye && m.a !== undefined && m.b !== undefined;
     if (!canPick) return h('div', { class: cls }, label);
@@ -640,7 +651,7 @@ async function renderAdmin(panel) {
   const quizBox = h('section', { class: 'card stack' },
     h('h2', {}, `All quiz questions (${questions.length})`),
     questions.length
-      ? h('ol', { class: 'q-list' }, questions.map(x => questionCard(x,
+      ? h('ol', { class: 'q-list' }, questions.map((x, i) => questionCard(x, i + 1,
           confirmButton('Delete', async () => { await call('delete_question', { p_id: x.id }); renderAdmin(panel); }))))
       : h('p', { class: 'hint' }, 'No questions yet.'));
 

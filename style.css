@@ -2,6 +2,9 @@
    Layout: a crimped gold foil band (the cracker) across the top of a cracker-red page;
    everything you read or fill in is a white joke slip; each team is a tissue-crown colour.
    Deliberately one theme: the red ground is the identity, so it does not flip with dark mode. */
+@font-face { font-family: "Titan One"; src: url("fonts/titan-one-latin.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("fonts/figtree-latin.woff2") format("woff2"); font-weight: 500 800; font-display: swap; }
+
 :root {
   color-scheme: light;
   --red: #a3122d;
@@ -31,7 +34,7 @@
 
   --font-display: "Titan One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
   --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --slip-shadow: 0 10px 22px -10px rgb(40 0 10 / .6), 0 2px 4px rgb(40 0 10 / .25);
+  --slip-shadow: 0 3px 3px -1px rgb(40 0 10 / .5); /* short paper shadow */
   --tooth: 18px; /* cracker crimp tooth width */
 }
 
@@ -83,8 +86,10 @@ p { margin: 0; }
 .site-name span { display: block; font-size: max(.62em, 1.45rem); color: var(--red-deep); }
 .sleeps {
   font-weight: 800; font-size: .9rem; font-variant-numeric: tabular-nums;
-  background: var(--red); color: var(--on-red);
-  padding: .35rem .8rem; border-radius: 999px;
+  background: radial-gradient(circle at .7rem 50%, var(--gold) 0 .2rem, transparent .23rem) var(--red);
+  color: var(--on-red);
+  padding: .35rem .85rem .35rem 1.25rem; border-radius: 2px;
+  clip-path: polygon(.65rem 0, 100% 0, 100% 100%, .65rem 100%, 0 50%);
 }
 
 .userbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding-block: .9rem .2rem; font-weight: 700; }
@@ -100,7 +105,7 @@ input, textarea, select {
   border-radius: 6px;
   padding: .75rem .85rem;
 }
-input::placeholder, textarea::placeholder { color: #8f6f76; font-weight: 500; }
+input::placeholder, textarea::placeholder { color: #7a5a61; font-weight: 500; }
 input:focus, textarea:focus, select:focus { border-color: var(--print); background: var(--slip); outline: none; }
 textarea { min-height: 5.5rem; resize: vertical; }
 #auth-pin { font-size: 1.6rem; letter-spacing: .5em; max-width: 9.5rem; font-variant-numeric: tabular-nums; }
@@ -114,7 +119,7 @@ input[type="radio"] { width: 1.4rem; height: 1.4rem; accent-color: var(--print);
   background: var(--gold); color: var(--gold-ink);
   padding: .8rem 1.4rem; min-height: 48px;
   cursor: pointer;
-  box-shadow: 0 6px 14px -8px rgb(40 0 10 / .7);
+  box-shadow: 0 3px 3px -1px rgb(40 0 10 / .45);
   transition: transform .15s ease, box-shadow .15s ease;
 }
 .btn:hover { transform: translateY(-1px); }
@@ -155,14 +160,20 @@ a.btn { align-self: flex-start; }
 .suggest { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; color: var(--ink); font-weight: 700; }
 
 /* ---------- Tabs: foil tags ---------- */
-.tabs { display: flex; gap: .3rem; margin: .4rem 0 1.25rem; overflow-x: auto; padding: 4px 2px 8px; }
+.tabs { display: flex; gap: .35rem; margin: .4rem 0 1.25rem; overflow-x: auto; padding: 4px 2px 8px; }
 .tabs button {
   font: inherit; font-weight: 800; white-space: nowrap; cursor: pointer;
-  color: var(--on-red); background: rgb(0 0 0 / .18);
-  border: 2px solid rgb(255 255 255 / .35); border-radius: 999px;
-  padding: .5rem .8rem; min-height: 44px; font-size: .95rem;
+  color: var(--on-red); background: var(--red-deep);
+  border: 0; border-radius: 2px;
+  padding: .55rem .85rem .55rem 1.3rem; min-height: 44px; font-size: .95rem;
+  clip-path: polygon(.7rem 0, 100% 0, 100% 100%, .7rem 100%, 0 50%); /* gift-tag end */
+  background-image: radial-gradient(circle at .75rem 50%, var(--red) 0 .2rem, transparent .23rem); /* punched hole */
 }
-.tabs button[aria-selected="true"] { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); box-shadow: 0 6px 14px -8px rgb(40 0 10 / .8); }
+.tabs button[aria-selected="true"] {
+  color: var(--gold-ink);
+  background: radial-gradient(circle at .75rem 50%, var(--red) 0 .2rem, transparent .23rem),
+              repeating-linear-gradient(-62deg, var(--gold) 0 10px, var(--gold-stripe) 10px 20px);
+}
 .panel { display: flex; flex-direction: column; gap: 1rem; }
 .panel > h2, .panel > .stack:not(.card) > h2, .section-title { color: var(--on-red); }
 
@@ -180,7 +191,7 @@ a.btn { align-self: flex-start; }
 .team-head h4 { grid-area: name; font-size: 1.05rem; }
 .team-head .crown { width: 1.55rem; height: 1.15rem; }
 .team-count { font-size: .85rem; font-weight: 800; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.team-card li.slot { color: #9a7e84; font-style: italic; font-weight: 500; font-size: .92rem; }
+.team-card li.slot { color: var(--ink-soft); font-style: italic; font-weight: 500; font-size: .92rem; }
 .team-card.is-mine { outline: 3px solid var(--gold); outline-offset: 3px; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
 .chip { background: var(--slip); color: var(--ink); border-radius: 999px; padding: .25rem .75rem; font-size: .92rem; font-weight: 600; }
@@ -202,13 +213,24 @@ a.btn { align-self: flex-start; }
 }
 .spin-status { font-family: var(--font-display); font-size: 1.35rem; text-align: center; text-wrap: balance; color: var(--on-red); }
 
+/* Your team, as the prize from the cracker */
+.prize {
+  background: var(--slip); color: var(--ink); border-radius: 4px; box-shadow: var(--slip-shadow);
+  padding: 1.6rem 1.25rem 1.25rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: .45rem;
+  box-shadow: inset 0 10px 0 var(--team), var(--slip-shadow); /* tissue-colour band along the top */
+}
+.prize-crown { width: 7.5rem; height: 5.25rem; color: var(--team); filter: drop-shadow(0 3px 2px rgb(40 0 10 / .35)); }
+.prize h2 { font-size: clamp(1.7rem, 8vw, 2.3rem); color: var(--ink); }
+.prize p { color: var(--ink-soft); font-weight: 700; max-width: 30ch; }
+.prize .prize-wait { font-weight: 600; font-style: italic; }
+
 /* crown lands on your team after a spin */
 @media (prefers-reduced-motion: no-preference) {
-  .team-card.just-joined .crown { animation: crown-drop .9s cubic-bezier(.16, 1, .3, 1) both; }
-  .team-card.just-joined { animation: slip-pop .6s cubic-bezier(.16, 1, .3, 1) .2s both; }
+  .prize.is-new .prize-crown { animation: crown-drop 1s cubic-bezier(.16, 1, .3, 1) .15s both; }
+  .prize.is-new { animation: slip-pop .7s cubic-bezier(.16, 1, .3, 1) both; }
 }
-@keyframes crown-drop { from { transform: translateY(-40px) rotate(-25deg); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes slip-pop { 50% { transform: scale(1.05); } }
+@keyframes crown-drop { from { transform: translateY(-140px) rotate(-30deg) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slip-pop { from { transform: scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
 
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
 
@@ -223,8 +245,8 @@ a.btn { align-self: flex-start; }
 .q-item { background: var(--slip); color: var(--ink); border-radius: 4px; box-shadow: var(--slip-shadow); padding: .9rem 1rem; display: flex; gap: .75rem; align-items: start; justify-content: space-between; }
 .q-item > div { min-width: 0; overflow-wrap: anywhere; }
 .q-item .hint { color: var(--ink-soft); }
-.q-kind { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--print); }
-.q-text { font-weight: 700; }
+.q-text { font-weight: 700; padding-bottom: .45rem; border-bottom: 2px solid var(--print); }
+.q-meta { font-size: .88rem; font-weight: 700; color: var(--ink-soft); }
 .q-photo { max-width: 100%; max-height: 16rem; border-radius: 4px; object-fit: cover; }
 .q-photo.small { max-height: 6rem; }
 .q-answer { color: var(--ink-soft); font-size: .95rem; }
@@ -234,7 +256,7 @@ a.btn { align-self: flex-start; }
 
 /* ---------- Games ---------- */
 .game { background: var(--slip); color: var(--ink); border-radius: 4px; box-shadow: var(--slip-shadow); padding: .9rem 1rem; display: flex; flex-direction: column; gap: .6rem; }
-.game-top { display: grid; grid-template-columns: auto 1fr auto; gap: .85rem; align-items: center; }
+.game-top { display: grid; grid-template-columns: auto 1fr auto; gap: .85rem; align-items: center; padding-bottom: .6rem; border-bottom: 2px solid var(--print); }
 .game-title { min-width: 0; }
 .game-name { font-family: var(--font-display); font-size: 1.15rem; overflow-wrap: anywhere; }
 .game-voters { font-size: .88rem; color: var(--ink-soft); }
@@ -268,6 +290,11 @@ a.btn { align-self: flex-start; }
 
 /* Bauble Pong bracket: one column per round, scrolls sideways on phones */
 .bracket-scroll { overflow-x: auto; margin-inline: -4px; padding: 4px; }
+@media (max-width: 600px) { /* phones: rounds stack top to bottom, nothing to scroll sideways */
+  .bracket-scroll .bracket { grid-auto-flow: row; grid-auto-columns: auto; }
+  .bracket-scroll .round-matches { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+}
+.side-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bracket { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(11.5rem, 1fr); gap: 1rem; }
 .round { display: flex; flex-direction: column; gap: .5rem; }
 .round h4 { font-family: var(--font-body); font-size: .78rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--print); }
@@ -280,8 +307,8 @@ button.side { cursor: pointer; }
 button.side:hover { background: var(--slip); }
 .side.won { background: var(--slip); font-weight: 800; }
 .side.won .icon { margin-left: auto; color: var(--ok); }
-.side.lost { color: #9a7e84; font-weight: 600; text-decoration: line-through; }
-.side.bye, .side.tbd { color: #9a7e84; font-style: italic; font-weight: 600; }
+.side.lost { color: var(--ink-soft); font-weight: 600; text-decoration: line-through; }
+.side.bye, .side.tbd { color: var(--ink-soft); font-style: italic; font-weight: 600; }
 .dot { width: .8rem; height: .8rem; border-radius: 50%; background: var(--team); flex: none; }
 .champion { display: flex; align-items: center; gap: .6rem; font-family: var(--font-display); font-size: 1.3rem; color: var(--gold-ink); padding: .8rem 1rem; border-radius: 6px; background: var(--gold); text-wrap: balance; }
 .champion .icon { width: 1.6em; height: 1.6em; }

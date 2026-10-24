@@ -1,6 +1,9 @@
 /* TV quiz screen for A Xmas for the Ages. Same cracker world as the phone site:
    a crimped gold foil band across the top, the question on the cracker-red stage,
    answers as big tissue-coloured tiles, results on white joke slips. Read from across a living room. */
+@font-face { font-family: "Titan One"; src: url("fonts/titan-one-latin.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("fonts/figtree-latin.woff2") format("woff2"); font-weight: 500 800; font-display: swap; }
+
 :root {
   color-scheme: light;
   --red: #a3122d;
