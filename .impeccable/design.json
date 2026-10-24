@@ -1,0 +1,587 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T09:34:40+00:00",
+  "title": "Design System: A Xmas for the Ages",
+  "extensions": {
+    "colorMeta": {
+      "cracker-red": {
+        "role": "primary",
+        "displayName": "Cracker Red",
+        "canonical": "oklch(46.0% 0.175 19.5)",
+        "tonalRamp": [
+          "#1f0003",
+          "#4c010e",
+          "#7f021e",
+          "#ae2236",
+          "#d74b56",
+          "#ff7178",
+          "#ffb2b1",
+          "#ffe8e8"
+        ]
+      },
+      "cracker-red-stripe": {
+        "role": "primary",
+        "displayName": "Cracker Red Stripe",
+        "canonical": "oklch(44.0% 0.168 19.8)",
+        "tonalRamp": [
+          "#1e0003",
+          "#4c000e",
+          "#80001d",
+          "#ac2737",
+          "#d44e57",
+          "#fd7379",
+          "#ffb2b1",
+          "#ffe8e8"
+        ]
+      },
+      "cracker-red-deep": {
+        "role": "primary",
+        "displayName": "Cracker Red Deep",
+        "canonical": "oklch(34.9% 0.131 19.0)",
+        "tonalRamp": [
+          "#1f0003",
+          "#4c000f",
+          "#781624",
+          "#9e3b43",
+          "#c45e62",
+          "#ec8184",
+          "#feb2b2",
+          "#fee9e8"
+        ]
+      },
+      "title-red": {
+        "role": "primary",
+        "displayName": "Title Red",
+        "canonical": "oklch(40.6% 0.155 19.7)",
+        "tonalRamp": [
+          "#1f0002",
+          "#4c000e",
+          "#7f011e",
+          "#a72f3b",
+          "#cf545b",
+          "#f7787c",
+          "#feb2b1",
+          "#fee9e8"
+        ]
+      },
+      "on-red": {
+        "role": "neutral",
+        "displayName": "On Red",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "on-red-soft": {
+        "role": "neutral",
+        "displayName": "On Red Soft",
+        "canonical": "oklch(90.0% 0.042 6.9)",
+        "tonalRamp": [
+          "#190408",
+          "#361c21",
+          "#56393e",
+          "#77575d",
+          "#99787e",
+          "#bd9ba0",
+          "#e3bec4",
+          "#fee8ec"
+        ]
+      },
+      "foil-gold": {
+        "role": "secondary",
+        "displayName": "Foil Gold",
+        "canonical": "oklch(83.4% 0.141 85.4)",
+        "tonalRamp": [
+          "#110a00",
+          "#312301",
+          "#543e01",
+          "#7b5c00",
+          "#a37b06",
+          "#cd9d1d",
+          "#f3c24f",
+          "#ffedc7"
+        ]
+      },
+      "foil-gold-stripe": {
+        "role": "secondary",
+        "displayName": "Foil Gold Stripe",
+        "canonical": "oklch(77.9% 0.149 82.9)",
+        "tonalRamp": [
+          "#110a00",
+          "#322200",
+          "#563d02",
+          "#7d5b02",
+          "#a67a02",
+          "#d19b0b",
+          "#f8bf45",
+          "#ffecca"
+        ]
+      },
+      "gold-ink": {
+        "role": "secondary",
+        "displayName": "Gold Ink",
+        "canonical": "oklch(27.9% 0.059 72.8)",
+        "tonalRamp": [
+          "#130900",
+          "#352001",
+          "#553d1b",
+          "#765c3a",
+          "#987d5a",
+          "#bca07c",
+          "#e1c49f",
+          "#feebd4"
+        ]
+      },
+      "slip-white": {
+        "role": "neutral",
+        "displayName": "Slip White",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "slip-shade": {
+        "role": "neutral",
+        "displayName": "Slip Shade",
+        "canonical": "oklch(96.5% 0.011 31.1)",
+        "tonalRamp": [
+          "#100908",
+          "#2a2322",
+          "#48403e",
+          "#675f5d",
+          "#89807e",
+          "#aca3a1",
+          "#d0c7c5",
+          "#f6ecea"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(20.5% 0.052 9.0)",
+        "tonalRamp": [
+          "#1c0207",
+          "#3a1920",
+          "#5a363c",
+          "#7c555b",
+          "#9f767c",
+          "#c3989e",
+          "#e9bcc2",
+          "#fee8eb"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Ink Soft",
+        "canonical": "oklch(44.6% 0.045 4.6)",
+        "tonalRamp": [
+          "#1a0309",
+          "#371b22",
+          "#57383f",
+          "#78575e",
+          "#9a787f",
+          "#bf9aa1",
+          "#e4bec5",
+          "#fee8ec"
+        ]
+      },
+      "print-red": {
+        "role": "tertiary",
+        "displayName": "Print Red",
+        "canonical": "oklch(53.0% 0.207 22.3)",
+        "tonalRamp": [
+          "#1f0002",
+          "#4c010a",
+          "#800218",
+          "#b70327",
+          "#e43845",
+          "#fe7272",
+          "#feb2af",
+          "#fee9e7"
+        ]
+      },
+      "rule-blush": {
+        "role": "neutral",
+        "displayName": "Rule Blush",
+        "canonical": "oklch(89.3% 0.026 8.7)",
+        "tonalRamp": [
+          "#140709",
+          "#302022",
+          "#4f3c3f",
+          "#6f5b5e",
+          "#917c7f",
+          "#b49fa2",
+          "#d9c3c6",
+          "#fee8eb"
+        ]
+      },
+      "ok-green": {
+        "role": "neutral",
+        "displayName": "OK Green",
+        "canonical": "oklch(55.9% 0.131 155.8)",
+        "tonalRamp": [
+          "#001005",
+          "#012e17",
+          "#03502c",
+          "#047443",
+          "#2b9960",
+          "#55bd82",
+          "#7ce2a5",
+          "#c6ffd9"
+        ]
+      },
+      "crown-red": {
+        "role": "tertiary",
+        "displayName": "Tissue Red",
+        "canonical": "oklch(57.1% 0.209 21.1)",
+        "tonalRamp": [
+          "#1f0002",
+          "#4d000c",
+          "#7f021b",
+          "#b7042b",
+          "#e43648",
+          "#ff7174",
+          "#feb2b0",
+          "#ffe8e7"
+        ]
+      },
+      "crown-gold": {
+        "role": "tertiary",
+        "displayName": "Tissue Gold",
+        "canonical": "oklch(81.1% 0.166 85.0)",
+        "tonalRamp": [
+          "#110a00",
+          "#312200",
+          "#553e00",
+          "#7b5c04",
+          "#a47b03",
+          "#cf9c01",
+          "#fabf1f",
+          "#ffedc8"
+        ]
+      },
+      "crown-emerald": {
+        "role": "tertiary",
+        "displayName": "Tissue Emerald",
+        "canonical": "oklch(55.9% 0.131 155.8)",
+        "tonalRamp": [
+          "#001005",
+          "#012e17",
+          "#03502c",
+          "#047443",
+          "#2b9960",
+          "#55bd82",
+          "#7ce2a5",
+          "#c6ffd9"
+        ]
+      },
+      "crown-cobalt": {
+        "role": "tertiary",
+        "displayName": "Tissue Cobalt",
+        "canonical": "oklch(50.2% 0.164 259.0)",
+        "tonalRamp": [
+          "#000924",
+          "#002155",
+          "#003c8d",
+          "#1c5cbc",
+          "#4080e3",
+          "#6ca5fe",
+          "#aacbfe",
+          "#e6effe"
+        ]
+      },
+      "crown-plum": {
+        "role": "tertiary",
+        "displayName": "Tissue Plum",
+        "canonical": "oklch(45.3% 0.164 319.2)",
+        "tonalRamp": [
+          "#17001e",
+          "#3d014a",
+          "#651377",
+          "#873a9b",
+          "#ab5dbf",
+          "#d180e5",
+          "#eeadff",
+          "#fae7fe"
+        ]
+      },
+      "crown-tangerine": {
+        "role": "tertiary",
+        "displayName": "Tissue Tangerine",
+        "canonical": "oklch(70.3% 0.173 52.0)",
+        "tonalRamp": [
+          "#170600",
+          "#3d1a01",
+          "#693001",
+          "#964804",
+          "#c86204",
+          "#f78024",
+          "#feb78c",
+          "#feeade"
+        ]
+      },
+      "tangerine-ink": {
+        "role": "tertiary",
+        "displayName": "Tangerine Ink",
+        "canonical": "oklch(21.6% 0.050 60.4)",
+        "tonalRamp": [
+          "#160700",
+          "#371f08",
+          "#563c26",
+          "#775b44",
+          "#997c64",
+          "#bd9e86",
+          "#e2c2a9",
+          "#ffeadb"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The two-line site name on the foil band."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Slip titles and section titles on the red ground."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sub-headings, the big spin button, game and team names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All running text; ledes and hints in the soft colour."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, tabs, buttons, mode switch."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Slip foot lines ('Slip N · kind') and voter lists."
+      },
+      "tv-question": {
+        "displayName": "TV Question",
+        "purpose": "The question on the TV quiz stage, read across a room."
+      }
+    },
+    "shadows": [
+      {
+        "name": "paper",
+        "value": "0 3px 3px -1px rgb(40 0 10 / .5)",
+        "purpose": "Every slip and card: paper resting on paper."
+      },
+      {
+        "name": "paper-button",
+        "value": "0 3px 3px -1px rgb(40 0 10 / .45)",
+        "purpose": "Gold buttons at rest; removed on press."
+      },
+      {
+        "name": "crown-drop",
+        "value": "drop-shadow(0 1px 0 rgb(0 0 0 / .25))",
+        "purpose": "Filter on the small paper crown icon."
+      },
+      {
+        "name": "prize-crown-drop",
+        "value": "drop-shadow(0 3px 2px rgb(40 0 10 / .35))",
+        "purpose": "Filter on the large crown in the prize slip."
+      }
+    ],
+    "motion": [
+      {
+        "name": "press",
+        "value": ".15s ease",
+        "purpose": "Button lift on hover and press; off under reduced motion."
+      },
+      {
+        "name": "wheel-settle",
+        "value": "cubic-bezier(.17, .67, .16, 1)",
+        "purpose": "Spin wheel easing to rest."
+      },
+      {
+        "name": "crown-drop",
+        "value": "1s cubic-bezier(.16, 1, .3, 1) .15s",
+        "purpose": "Crown drops onto the prize slip after a spin."
+      },
+      {
+        "name": "slip-pop",
+        "value": ".7s cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Prize slip arrives after a spin."
+      },
+      {
+        "name": "bar-grow",
+        "value": ".4s cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "Vote share bars; TV scoreboard bars use .8s."
+      },
+      {
+        "name": "confetti",
+        "value": "2.5s, 150 tissue-colour bits from the wheel",
+        "purpose": "Spin landing burst; not drawn under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "container",
+        "value": "40rem"
+      },
+      {
+        "name": "bracket-stack",
+        "value": "600px"
+      },
+      {
+        "name": "tv-single-column",
+        "value": "700px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Gold foil pill for the main action on a tab or slip.",
+      "html": "<div class=\"ds-ground\"><button class=\"ds-btn\" type=\"button\">Add question</button></div>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-ground{background:repeating-linear-gradient(135deg,var(--red) 0 26px,var(--red-stripe) 26px 52px);padding:16px;}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;font:800 1.0625rem/1.2 var(--font-body);border:2px solid var(--gold);border-radius:999px;background:var(--gold);color:var(--gold-ink);padding:.8rem 1.4rem;min-height:48px;cursor:pointer;box-shadow:0 3px 3px -1px rgb(40 0 10 / .45);transition:transform .15s ease,box-shadow .15s ease}.ds-btn:hover{transform:translateY(-1px)}.ds-btn:active{transform:translateY(1px);box-shadow:none}.ds-btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}"
+    },
+    {
+      "name": "Big Button",
+      "kind": "button",
+      "refersTo": "button-big",
+      "description": "The one biggest action on a tab (spin for my team), set in the display face.",
+      "html": "<div class=\"ds-ground\"><button class=\"ds-btn ds-btn-big\" type=\"button\">Spin for my team</button></div>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-ground{background:repeating-linear-gradient(135deg,var(--red) 0 26px,var(--red-stripe) 26px 52px);padding:16px;}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;font:800 1.0625rem/1.2 var(--font-body);border:2px solid var(--gold);border-radius:999px;background:var(--gold);color:var(--gold-ink);padding:.8rem 1.4rem;min-height:48px;cursor:pointer;box-shadow:0 3px 3px -1px rgb(40 0 10 / .45);transition:transform .15s ease,box-shadow .15s ease}.ds-btn:hover{transform:translateY(-1px)}.ds-btn:active{transform:translateY(1px);box-shadow:none}.ds-btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}.ds-btn-big{font-family:var(--font-display);font-weight:400;font-size:1.3rem;padding:1rem 2.2rem;min-height:58px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary and destructive actions on a slip; outlined pill.",
+      "html": "<div class=\"ds-slip\"><button class=\"ds-ghost\" type=\"button\">Redraw the bracket</button> <button class=\"ds-ghost ds-danger\" type=\"button\">Delete</button></div>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-slip{background:var(--slip);padding:1.25rem;border-radius:4px;box-shadow:var(--slip-shadow);display:flex;gap:.5rem}.ds-ghost{font:800 .92rem var(--font-body);background:transparent;color:var(--ink);border:2px solid var(--rule);border-radius:999px;padding:.4rem .9rem;min-height:40px;cursor:pointer}.ds-ghost:hover{border-color:var(--ink-soft)}.ds-ghost:focus-visible{outline:3px solid var(--gold);outline-offset:2px}.ds-danger{color:var(--print)}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Shaded paper field that turns white with a print-red border on focus.",
+      "html": "<div class=\"ds-slip\"><label class=\"ds-label\" for=\"ds-q\">Question</label><input id=\"ds-q\" class=\"ds-input\" placeholder=\"e.g. Who burnt the turkey in 2019?\"></div>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-slip{background:var(--slip);padding:1.25rem;border-radius:4px;box-shadow:var(--slip-shadow);display:flex;flex-direction:column;gap:.6rem;font-family:var(--font-body)}.ds-label{font-weight:800;font-size:.95rem;color:var(--ink)}.ds-input{font:600 1.0625rem var(--font-body);color:var(--ink);background:var(--slip-shade);border:2px solid var(--rule);border-radius:6px;padding:.75rem .85rem}.ds-input::placeholder{color:#7a5a61;font-weight:500}.ds-input:focus{border-color:var(--print);background:var(--slip);outline:none}"
+    },
+    {
+      "name": "Gift-Tag Tabs",
+      "kind": "nav",
+      "refersTo": "tab",
+      "description": "Tabs as gift tags: notched end, punched hole; the selected tag is striped foil gold.",
+      "html": "<div class=\"ds-ground\"><nav class=\"ds-tabs\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\">Teams</button><button role=\"tab\" aria-selected=\"false\">Quiz</button><button role=\"tab\" aria-selected=\"false\">Games</button></nav></div>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-ground{background:repeating-linear-gradient(135deg,var(--red) 0 26px,var(--red-stripe) 26px 52px);padding:16px;}.ds-tabs{display:flex;gap:.35rem}.ds-tabs button{font:800 .95rem var(--font-body);white-space:nowrap;cursor:pointer;color:var(--on-red);background:var(--red-deep);border:0;border-radius:2px;padding:.55rem .85rem .55rem 1.3rem;min-height:44px;clip-path:polygon(.7rem 0,100% 0,100% 100%,.7rem 100%,0 50%);background-image:radial-gradient(circle at .75rem 50%,var(--red) 0 .2rem,transparent .23rem)}.ds-tabs button[aria-selected=true]{color:var(--gold-ink);background:radial-gradient(circle at .75rem 50%,var(--red) 0 .2rem,transparent .23rem),repeating-linear-gradient(-62deg,var(--gold) 0 10px,var(--gold-stripe) 10px 20px)}.ds-tabs button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}"
+    },
+    {
+      "name": "Cracker Band Masthead",
+      "kind": "custom",
+      "refersTo": "sleeps-tag",
+      "description": "Striped gold foil band with crimped zigzag ends, the two-line site name and the sleeps gift tag.",
+      "html": "<header class=\"ds-cracker\"><div class=\"ds-inner\"><h1 class=\"ds-name\">A Xmas <span>for the Ages</span></h1><p class=\"ds-sleeps\">62 sleeps till Christmas</p></div></header>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-cracker{--tooth:18px;background:repeating-linear-gradient(-62deg,var(--gold) 0 22px,var(--gold-stripe) 22px 44px);-webkit-mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/var(--tooth) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/var(--tooth) 51% repeat-x;mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/var(--tooth) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/var(--tooth) 51% repeat-x}.ds-inner{padding:1.6rem 16px 1.5rem;display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:.5rem 1rem}.ds-name{margin:0;font:400 3rem/.95 var(--font-display);color:#8a0c24}.ds-name span{display:block;font-size:max(.62em,1.45rem);color:var(--red-deep)}.ds-sleeps{margin:0;font:800 .9rem var(--font-body);font-variant-numeric:tabular-nums;background:radial-gradient(circle at .7rem 50%,var(--gold) 0 .2rem,transparent .23rem) var(--red);color:var(--on-red);padding:.35rem .85rem .35rem 1.25rem;border-radius:2px;clip-path:polygon(.65rem 0,100% 0,100% 100%,.65rem 100%,0 50%)}"
+    },
+    {
+      "name": "Joke Slip",
+      "kind": "card",
+      "refersTo": "slip",
+      "description": "White paper slip with a print-red title rule, paper shadow and a foot line.",
+      "html": "<div class=\"ds-ground\"><article class=\"ds-slip\"><p class=\"ds-qtext\">Which film features a boy left home alone at Christmas?</p><p class=\"ds-meta\">Slip 1 · Multiple choice</p></article></div>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-ground{background:repeating-linear-gradient(135deg,var(--red) 0 26px,var(--red-stripe) 26px 52px);padding:16px;}.ds-slip{background:var(--slip);color:var(--ink);border-radius:4px;box-shadow:var(--slip-shadow);padding:.9rem 1rem;display:flex;flex-direction:column;gap:.6rem;font:500 1.0625rem/1.55 var(--font-body)}.ds-qtext{margin:0;font-weight:700;padding-bottom:.45rem;border-bottom:2px solid var(--print)}.ds-meta{margin:0;font-size:.88rem;font-weight:700;color:var(--ink-soft)}"
+    },
+    {
+      "name": "Team Card",
+      "kind": "card",
+      "refersTo": "slip",
+      "description": "A team's slip: tissue-colour paper crown, count, name and a rule in the team colour.",
+      "html": "<div class=\"ds-ground\"><article class=\"ds-team\" style=\"--team:#138a52\"><div class=\"ds-head\"><svg class=\"ds-crown\" viewBox=\"0 0 40 28\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M3 23 1 5l10 8 9-11 9 11 10-8-2 18z\"/><rect fill=\"currentColor\" x=\"3\" y=\"21\" width=\"34\" height=\"6\" rx=\"1.5\"/><path fill=\"none\" stroke=\"rgb(0 0 0 / .22)\" stroke-width=\"1.5\" d=\"M3 21h34\"/></svg><span class=\"ds-count\">3/3</span><h4>Crackers</h4></div><ul><li>Example Guest 2</li><li>Example Guest 3</li><li class=\"ds-slot\">Waiting for a spin</li></ul></article></div>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-ground{background:repeating-linear-gradient(135deg,var(--red) 0 26px,var(--red-stripe) 26px 52px);padding:16px;}.ds-team{max-width:12rem;background:var(--slip);color:var(--ink);border-radius:4px;padding:.9rem 1rem 1rem;box-shadow:var(--slip-shadow);display:flex;flex-direction:column;gap:.45rem;font-family:var(--font-body)}.ds-head{display:grid;grid-template-columns:auto 1fr;grid-template-areas:'crown count' 'name name';align-items:center;gap:.3rem .45rem;padding-bottom:.45rem;border-bottom:2px solid var(--team)}.ds-crown{grid-area:crown;width:1.55rem;height:1.15rem;color:var(--team);filter:drop-shadow(0 1px 0 rgb(0 0 0 / .25))}.ds-count{grid-area:count;justify-self:end;font-size:.85rem;font-weight:800;color:var(--ink-soft)}.ds-head h4{grid-area:name;margin:0;font:400 1.05rem/1.1 var(--font-display)}.ds-team ul{list-style:none;margin:0;padding:0;font-weight:600}.ds-slot{color:var(--ink-soft);font-style:italic;font-weight:500;font-size:.92rem}"
+    },
+    {
+      "name": "Vote Button",
+      "kind": "chip",
+      "refersTo": "vote",
+      "description": "Square vote tile with the count in the display face; fills gold once you have voted.",
+      "html": "<div class=\"ds-slip\"><button class=\"ds-vote\" type=\"button\"><span>2</span><small>votes</small></button><button class=\"ds-vote is-on\" type=\"button\"><span>3</span><small>votes</small></button></div>",
+      "css": ":host{--red:#a3122d;--red-stripe:#9a0f29;--red-deep:#6f0a1d;--on-red:#fff;--on-red-soft:#f8d3d9;--gold:#f2c14e;--gold-stripe:#e5ad2c;--gold-ink:#3a2300;--slip:#fff;--slip-shade:#fbf1ef;--ink:#2a0b12;--ink-soft:#6a4a51;--print:#c8102e;--rule:#ecd5d8;--font-display:\"Titan One\",\"Arial Rounded MT Bold\",\"Trebuchet MS\",sans-serif;--font-body:Figtree,system-ui,sans-serif;--slip-shadow:0 3px 3px -1px rgb(40 0 10 / .5)} .ds-slip{background:var(--slip);padding:1rem;border-radius:4px;box-shadow:var(--slip-shadow);display:flex;gap:.75rem}.ds-vote{font:800 1rem var(--font-body);font-variant-numeric:tabular-nums;width:3.4rem;height:3.4rem;border-radius:10px;border:2px solid var(--rule);background:var(--slip-shade);color:var(--ink);display:grid;place-items:center;line-height:1;cursor:pointer}.ds-vote span{font-family:var(--font-display);font-weight:400;font-size:1.25rem}.ds-vote small{font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.ds-vote.is-on{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}.ds-vote:focus-visible{outline:3px solid var(--gold);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "What Tumbles Out of the Cracker",
+    "overview": "The whole interface is the contents of a pulled Christmas cracker. The page itself is the cracker's red paper, striped on the diagonal; across the top runs the gold foil tube with crimped zigzag ends; everything you read or fill in is a white joke slip; every team is a tissue-paper crown in its own colour. It is loud and playful on purpose, and it stays on one theme: the red ground is the identity, so it does not flip for dark mode.\n\nLoudness lives in the ground, the foil and the display face, never in clutter. The slips are calm, square-ish paper with a single red print rule under their title, sturdy body type and big tap targets for a middle-aged audience on phones. Hierarchy comes from weight, case and the display/body switch on a small type scale rather than from many sizes. The TV quiz screen is the same world scaled up for reading across a living room: the same crimped band, the red stage, answers on big tissue-coloured tiles.\n\nEvery gradient in the system is a hard-stop pattern (stripes, a punched hole), never a smooth blend. Depth is paper lying on paper: one short shadow, no floating cards.",
+    "keyCharacteristics": [
+      "Cracker-red striped ground owns every page; single light theme by design.",
+      "Crimped gold foil band (repeating stripes, zigzag mask) as the masthead on phone and TV.",
+      "White joke slips with a 2px print-red rule under the title and a \"Slip N · kind\" foot line.",
+      "Six tissue-crown team colours, each with a paired text colour, carried by a drawn paper-crown icon.",
+      "Gift tags (notched end plus punched hole) for the countdown tag and the tabs.",
+      "Titan One for display, Figtree for everything you read; both self-hosted."
+    ],
+    "rules": [
+      {
+        "name": "The Red Ground Rule",
+        "body": "The striped cracker red is the page, on every surface and in every OS colour scheme. Content goes on paper laid over it; the ground is never replaced by a pale background.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Accent Rule",
+        "body": "On the red ground, gold is the only colour that means \"do this\". Print red belongs to the paper; tissue colours belong to teams and nothing else.",
+        "section": "colors"
+      },
+      {
+        "name": "The Hard-Stop Rule",
+        "body": "Gradients exist only as hard-stop patterns: diagonal stripes, conic stripes, a punched-hole radial. No smooth decorative blends.",
+        "section": "colors"
+      },
+      {
+        "name": "The Weight-Not-Size Rule",
+        "body": "Rank comes from the display/body switch, weight (500/600/700/800) and case, on a small scale. Don't add new sizes to create emphasis.",
+        "section": "typography"
+      },
+      {
+        "name": "The Foot-Line Rule",
+        "body": "Slip metadata goes at the foot of the slip as a Meta line, never as a small label above the heading.",
+        "section": "typography"
+      },
+      {
+        "name": "The Short Paper Rule",
+        "body": "A shadow is at most a few pixels: paper resting on paper. If it reads as floating, it is wrong.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep the striped cracker red (cracker-red / cracker-red-stripe, 135deg) as the ground of every page, in light and dark OS settings alike.",
+      "**Do** put everything readable or fillable on a white joke slip with the 4px corner, the paper shadow `0 3px 3px -1px rgb(40 0 10 / .5)` and a 2px print-red rule under its title.",
+      "**Do** use foil gold for the single main action and the current selection on the red ground.",
+      "**Do** give each team its tissue colour and its paired text colour, and show it with the paper crown.",
+      "**Do** build stripes, crimps and holes from hard-stop gradients and masks (the \"paper-cracker stripes\" motif).",
+      "**Do** carry slip metadata in the foot line (\"Slip N · kind\") in Meta type.",
+      "**Do** keep tap targets at 44px or more and every motion still under reduced motion."
+    ],
+    "donts": [
+      "**Don't** add a dark theme or a pale page background; the red ground does not flip.",
+      "**Don't** use soft, long or blurred elevation on slips; depth is a short paper shadow only.",
+      "**Don't** use smooth decorative gradients; stripes and holes are hard-stop.",
+      "**Don't** put a small uppercase label above a heading; slip metadata belongs in the foot line.",
+      "**Don't** use tissue team colours for anything except teams (and the TV answer tiles that borrow four of them).",
+      "**Don't** set print red on the red ground or body text in Titan One."
+    ]
+  }
+}
