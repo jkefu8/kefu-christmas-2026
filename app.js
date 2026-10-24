@@ -40,7 +40,7 @@ function setAuthMode(mode) {
 // Shows the error, plus "Did you mean…" buttons that fill in a close guest name.
 function showAuthError(message, suggestions = []) {
   const err = $('#auth-error');
-  err.replaceChildren(
+  fill(err, 
     h('span', {}, message),
     suggestions.length > 0 && h('span', { class: 'suggest' },
       h('span', {}, 'Did you mean:'),
@@ -182,7 +182,7 @@ async function renderTeams(panel) {
   const board = h('div', {}, teamBoard(view));
 
   if (!view.teams.length) {
-    panel.replaceChildren(h('section', { class: 'my-team' },
+    fill(panel, h('section', { class: 'my-team' },
       h('p', { class: 'eyebrow' }, 'Team draw'),
       h('h2', {}, 'The wheel is coming'),
       h('p', {}, 'Once the organiser sets up the draw, you can spin the wheel here to find your team of three.')));
@@ -209,13 +209,13 @@ async function renderTeams(panel) {
       const res = await call('spin');
       await spinTo(canvas, view.teams, res.team_id);
       view = await call('teams_view');
-      board.replaceChildren(teamBoard(view));
+      fill(board, teamBoard(view));
       setStatus();
       board.querySelector(`[data-team="${res.team_id}"]`)?.classList.add('just-joined');
     } finally { spinning = false; }
   }));
 
-  panel.replaceChildren(
+  fill(panel, 
     h('section', { class: 'stack' },
       h('p', { class: 'eyebrow' }, `${view.teams.reduce((n, t) => n + t.members.length, 0)} of ${view.teams.reduce((n, t) => n + t.size, 0)} have spun`),
       h('h2', {}, 'The teams'),
@@ -240,7 +240,7 @@ async function renderTeams(panel) {
       const next = await call('teams_view');
       if (JSON.stringify(next) !== JSON.stringify(view)) {
         view = next;
-        board.replaceChildren(teamBoard(view));
+        fill(board, teamBoard(view));
         setStatus();
       }
     } catch { /* try again next tick */ }
@@ -299,7 +299,7 @@ async function renderQuiz(panel) {
   const photoBox = h('div', { class: 'photo-box' });
 
   function drawTypeSwitch() {
-    typeSwitch.replaceChildren(...[['tf', 'True / False'], ['mc', 'Multiple choice']].map(([k, label]) =>
+    fill(typeSwitch, ...[['tf', 'True / False'], ['mc', 'Multiple choice']].map(([k, label]) =>
       h('button', {
         type: 'button', role: 'radio', 'aria-checked': kind === k, class: kind === k ? 'is-on' : '',
         onclick: () => { kind = k; drawTypeSwitch(); drawAnswers(); },
@@ -308,12 +308,12 @@ async function renderQuiz(panel) {
 
   function drawAnswers() {
     if (kind === 'tf') {
-      answers.replaceChildren(
+      fill(answers, 
         h('p', { class: 'label' }, 'Which is correct?'),
         h('div', { class: 'row' }, ['True', 'False'].map((t, i) =>
           h('label', { class: 'choice' }, h('input', { type: 'radio', name: 'correct', value: i, id: `tf-${i}` }), t))));
     } else {
-      answers.replaceChildren(
+      fill(answers, 
         h('p', { class: 'label' }, 'Four choices. Tick the correct one.'),
         ['A', 'B', 'C', 'D'].map((letter, i) =>
           h('div', { class: 'mc-row' },
@@ -323,7 +323,7 @@ async function renderQuiz(panel) {
   }
 
   function drawPhoto() {
-    photoBox.replaceChildren(photo
+    fill(photoBox, photo
       ? h('div', { class: 'row' },
           h('img', { class: 'q-photo small', src: photo, alt: 'Your chosen photo' }),
           h('button', { class: 'btn ghost small', type: 'button', onclick: () => { photo = null; photoInput.value = ''; drawPhoto(); } }, 'Remove photo'))
@@ -362,7 +362,7 @@ async function renderQuiz(panel) {
   });
 
   drawTypeSwitch(); drawAnswers(); drawPhoto();
-  panel.replaceChildren(
+  fill(panel, 
     form,
     h('h3', {}, mine.length ? `Your questions (${mine.length})` : 'Your questions'),
     mine.length
@@ -393,10 +393,12 @@ async function renderGames(panel) {
     onclick: busy(async () => { await call('toggle_vote', { p_game_id: g.id }); await renderGames(panel); }),
   }, h('span', {}, String(g.votes)), h('small', {}, g.votes === 1 ? 'vote' : 'votes'));
 
-  panel.replaceChildren(
+  const tourney = h('section', { class: 'card stack' });
+  fill(panel,
+    tourney,
     h('div', { class: 'stack tight' },
-      h('h2', {}, 'Which games shall we play?'),
-      h('p', { class: 'lede' }, 'Tap the number to vote. Vote for as many as you like, and tap again to take a vote back. Drinking games are adults only, so please drink responsibly.')),
+      h('h2', {}, 'Games to play'),
+      h('p', { class: 'lede' }, 'Tap the number to vote. Tap again to take your vote back. Drinking games are adults only, so please drink responsibly.')),
     games.length
       ? h('ul', { class: 'plain stack' }, games.map(g => h('li', { class: 'game' },
           h('div', { class: 'game-top' },
@@ -414,6 +416,123 @@ async function renderGames(panel) {
       : h('p', { class: 'hint' }, 'No games yet. Suggest the first one below.'),
     form,
   );
+  await renderTournament(tourney);
+}
+
+// ---------- Bauble Pong tournament ----------
+
+// Bracket positions that spread the seeds so byes go to the top seeds.
+// size 8 -> [0, 7, 3, 4, 1, 6, 2, 5] (0-based seed numbers).
+function bracketOrder(size) {
+  let order = [0];
+  while (order.length < size) {
+    const n = order.length * 2;
+    order = order.flatMap(i => [i, n - 1 - i]);
+  }
+  return order;
+}
+
+// Every match, worked out from the seeding and the winners picked so far.
+// A side is a team id, null for a bye, or undefined while that earlier match is unplayed.
+function buildBracket(seeds, results) {
+  const size = 2 ** Math.ceil(Math.log2(Math.max(2, seeds.length)));
+  let slots = bracketOrder(size).map(i => (i < seeds.length ? seeds[i] : null));
+  const rounds = [];
+  for (let r = 0; slots.length > 1; r++) {
+    const matches = [];
+    for (let i = 0; i < slots.length; i += 2) {
+      const a = slots[i], b = slots[i + 1], key = `${r}-${i / 2}`;
+      const bye = a === null || b === null;
+      let winner;
+      if (a === null && b === null) winner = null;
+      else if (bye) winner = a === null ? b : a; // undefined if the other side isn't decided yet
+      else if (a !== undefined && b !== undefined && (results[key] === a || results[key] === b)) winner = results[key];
+      matches.push({ key, a, b, bye, winner });
+    }
+    rounds.push(matches);
+    slots = matches.map(m => m.winner);
+  }
+  return rounds;
+}
+
+// Drop any result that no longer fits, e.g. after an earlier winner was changed.
+function pruneResults(seeds, results) {
+  return Object.fromEntries(buildBracket(seeds, results).flat()
+    .filter(m => !m.bye && m.winner != null && results[m.key] === m.winner)
+    .map(m => [m.key, m.winner]));
+}
+
+function roundName(r, total) {
+  const fromEnd = total - 1 - r;
+  return ['Final', 'Semi-finals', 'Quarter-finals'][fromEnd] || `Round ${r + 1}`;
+}
+
+async function renderTournament(box) {
+  let t = await call('tournament_view');
+  const teamIdx = Object.fromEntries(t.teams.map((x, i) => [x.id, i]));
+  const name = id => t.teams[teamIdx[id]]?.name;
+
+  const save = async (seeds, results) => {
+    await call('tournament_set', { p_seeds: seeds, p_results: pruneResults(seeds, results) });
+    renderTournament(box);
+  };
+  const drawBracket = () => save(shuffle(t.teams.map(x => x.id)), {});
+
+  const intro = [h('p', { class: 'eyebrow' }, 'Tournament'), h('h2', {}, 'Bauble Pong knockout')];
+  if (!t.teams.length) {
+    return fill(box, intro, h('p', { class: 'lede' }, 'The bracket appears here once the teams have been drawn.'));
+  }
+  const valid = t.seeds.length === t.teams.length && t.seeds.every(id => id in teamIdx);
+  if (!valid) {
+    return fill(box, intro,
+      h('p', { class: 'lede' }, `All ${t.teams.length} teams play. The organiser draws the bracket, with random byes if the numbers are uneven.`),
+      me.is_admin && h('button', { class: 'btn', type: 'button', onclick: busy(drawBracket) }, t.seeds.length ? 'Teams changed: draw a new bracket' : 'Draw the bracket'));
+  }
+
+  const rounds = buildBracket(t.seeds, t.results);
+  const champion = rounds.at(-1)[0].winner;
+
+  const side = (m, id) => {
+    if (id === null) return h('div', { class: 'side bye' }, 'Bye');
+    if (id === undefined) return h('div', { class: 'side tbd' }, 'To be decided');
+    const decided = m.winner != null && !m.bye;
+    const cls = 'side' + (m.winner === id ? ' won' : decided ? ' lost' : '');
+    const label = [h('span', { class: 'dot', style: `--team:${teamColour(teamIdx[id])}` }), h('span', {}, 'Team ' + name(id)),
+      m.winner === id && !m.bye && h('span', { class: 'tick' }, '✓')];
+    const canPick = me.is_admin && !m.bye && m.a !== undefined && m.b !== undefined;
+    if (!canPick) return h('div', { class: cls }, label);
+    return h('button', {
+      class: cls, type: 'button', 'aria-pressed': m.winner === id,
+      title: m.winner === id ? 'Tap again to undo' : `Team ${name(id)} won`,
+      onclick: busy(() => {
+        const results = { ...t.results };
+        if (results[m.key] === id) delete results[m.key]; else results[m.key] = id;
+        return save(t.seeds, results);
+      }),
+    }, label);
+  };
+
+  fill(box, intro,
+    champion != null
+      ? h('p', { class: 'champion', style: `--team:${teamColour(teamIdx[champion])}` }, `🏆 Team ${name(champion)} are the Bauble Pong champions!`)
+      : h('p', { class: 'lede' }, me.is_admin ? 'Tap the winning team of each match. Tap again to undo.' : 'Winners move on automatically. The organiser records each result.'),
+    h('div', { class: 'bracket-scroll' }, h('div', { class: 'bracket' }, rounds.map((ms, r) =>
+      h('section', { class: 'round' },
+        h('h4', {}, roundName(r, rounds.length)),
+        h('div', { class: 'round-matches' }, ms.map(m => h('div', { class: 'match' + (m.bye ? ' is-bye' : '') }, side(m, m.a), side(m, m.b)))))))),
+    me.is_admin && h('div', { class: 'row' },
+      confirmButton('Redraw the bracket', drawBracket),
+      Object.keys(t.results).length > 0 && confirmButton('Clear all results', () => save(t.seeds, {}))));
+
+  // Keep the bracket live while the Games tab is open.
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    if (document.hidden || box.querySelector(':disabled')) return;
+    try {
+      const next = await call('tournament_view');
+      if (JSON.stringify(next) !== JSON.stringify(t)) { t = next; renderTournament(box); }
+    } catch { /* try again next tick */ }
+  }, POLL_MS);
 }
 
 // ---------- Organiser ----------
@@ -529,7 +648,7 @@ async function renderAdmin(panel) {
     h('p', { class: 'lede' }, `Open this on the laptop connected to the TV. ${questions.length} questions so far. Space reveals the answer, the right arrow moves on, F goes fullscreen.`),
     h('a', { class: 'btn', href: 'tv.html', target: '_blank', rel: 'noopener' }, 'Open the TV quiz screen'));
 
-  panel.replaceChildren(drawBox, tvBox, peopleBox, quizBox);
+  fill(panel, drawBox, tvBox, peopleBox, quizBox);
 }
 
 // ---------- start ----------

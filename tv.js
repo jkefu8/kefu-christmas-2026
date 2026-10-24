@@ -19,7 +19,7 @@ let timer = null;     // {ends, tick}
 onStaleSession = () => message('Your login has expired. ', h('a', { href: './' }, 'Log in on the main site'), ', then come back.');
 
 function message(...kids) {
-  tv.replaceChildren(h('p', { class: 'tv-message' }, ...kids));
+  fill(tv, h('p', { class: 'tv-message' }, ...kids));
 }
 
 const teamIndex = id => state.teams.findIndex(t => t.id === id);
@@ -94,7 +94,7 @@ function controls(extra) {
 function renderStart() {
   const n = state.questions.length;
   const people = new Set(state.questions.map(q => q.author_id)).size;
-  tv.replaceChildren(
+  fill(tv, 
     topStrip('Quiz night'),
     h('main', { class: 'stage' },
       h('p', { class: 'eyebrow' }, 'Kefu Christmas 2026'),
@@ -116,7 +116,7 @@ function renderQuestion() {
   const own = ownTeam(q);
   const ownName = state.teams.find(t => t.id === own)?.name;
   const options = q.options || ['True', 'False'];
-  tv.replaceChildren(
+  fill(tv, 
     topStrip(`Question ${state.idx + 1} of ${state.questions.length} · ${q.kind === 'tf' ? 'True or false' : 'Multiple choice'}`),
     h('main', { class: 'stage' + (q.photo ? ' has-photo' : '') + (state.revealed ? ' revealed' : '') },
       q.photo && h('img', { class: 'q-photo', src: q.photo, alt: '' }),
@@ -147,7 +147,7 @@ function leaderboard() {
 }
 
 function renderScores() {
-  tv.replaceChildren(
+  fill(tv, 
     topStrip(`After question ${state.idx + 1} of ${state.questions.length}`),
     h('main', { class: 'stage' }, h('p', { class: 'eyebrow' }, 'Scoreboard'), h('h2', { class: 'big-title' }, 'How the teams stand'), leaderboard()),
     controls());
@@ -156,7 +156,7 @@ function renderScores() {
 function renderEnd() {
   const best = Math.max(0, ...state.teams.map(t => state.scores[t.id] || 0));
   const winners = state.teams.filter(t => (state.scores[t.id] || 0) === best && best > 0);
-  tv.replaceChildren(
+  fill(tv, 
     topStrip('Final scores'),
     h('main', { class: 'stage' },
       h('p', { class: 'eyebrow' }, 'And the winner is…'),

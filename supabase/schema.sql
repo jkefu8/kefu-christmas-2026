@@ -95,6 +95,14 @@ create table if not exists quiz_scores (
   points  int not null default 0
 );
 
+-- v5: Bauble Pong knockout. seeds = team ids in bracket order; results = {"<round>-<match>": winner team id}.
+create table if not exists tournament (
+  id         int primary key default 1 check (id = 1),
+  seeds      jsonb not null default '[]',
+  results    jsonb not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
 alter table people         enable row level security;
 alter table sessions       enable row level security;
 alter table teams          enable row level security;
@@ -104,6 +112,7 @@ alter table games          enable row level security;
 alter table votes          enable row level security;
 alter table quiz_night     enable row level security;
 alter table quiz_scores    enable row level security;
+alter table tournament     enable row level security;
 
 revoke all on all tables    in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
@@ -491,49 +500,38 @@ begin
   delete from games where id = p_id and (added_by = p.id or p.is_admin);
 end $$;
 
--- Built-in Christmas drinking games (adults only). Re-running skips any already there.
+-- The built-in game (adults only). Re-running skips it if it's already there.
 insert into games (name, slug, description, steps) values
-('Twelve Drinks of Christmas', 'twelve-drinks', 'A memory chain that gets harder every round.',
- '["Sit in a circle. The first person sings \"On the first day of Christmas my true love gave to me…\" and adds an item.",
-   "The next person repeats the whole list in order, then adds one more.",
-   "Forget an item or mix up the order and you drink. The chain restarts with the next person.",
-   "Whoever makes it to twelve picks someone to finish their drink."]'),
 ('Bauble Pong', 'bauble-pong', 'Team-against-team beer pong with a festive twist.',
  '["Set up six cups in a triangle at each end of the table.",
    "Teams take turns throwing a ping-pong ball (or an unbreakable bauble) at the other side''s cups.",
    "Land one and the other team drinks that cup and takes it away.",
-   "First team to clear the other side''s cups wins."]'),
-('Christmas Ring of Fire', 'ring-of-fire', 'Every card has a rule. Don''t be the one who draws the last King.',
- '["Spread a deck face-down in a circle around a big empty cup.",
-   "Take turns drawing a card: 2 pick someone to drink, 3 you drink, 4 everyone wearing red drinks, 5 sing a carol line or drink, 7 last hand up drinks, J make a rule.",
-   "Every King: pour some of your drink into the centre cup.",
-   "Whoever draws the fourth King drinks the centre cup."]'),
-('Flip Cup Relay', 'flip-cup', 'A drinking race between teams.',
- '["Teams line up on opposite sides of a table, each player with a small drink.",
-   "On \"Go\" the first player drinks, puts the cup on the table edge and flips it upside down with one finger.",
-   "Only when it lands upside down can the next teammate start.",
-   "First team to flip every cup wins."]'),
-('Christmas Movie Drinking Game', 'movie', 'Watch a classic and drink on your team''s triggers.',
- '["Vote for the film: Home Alone, Elf or Love Actually.",
-   "Each team gets a trigger, like \"Keviiin!\", Buddy eating sugar, or anyone saying \"Christmas\".",
-   "Drink every time your trigger happens.",
-   "Swap triggers halfway through."]'),
-('Never Have I Ever: Christmas Edition', 'never', 'Confess your festive sins.',
- '["Everyone holds up five fingers.",
-   "Take turns saying \"Never have I ever…\" with something Christmassy, like \"…regifted a present\".",
-   "Anyone who has done it puts a finger down and drinks.",
-   "Last person with fingers still up wins."]'),
-('Santa Says', 'santa-says', 'Simon Says, but Santa is in charge and mistakes cost a sip.',
- '["One person wears the Santa hat and gives commands.",
-   "Only obey commands that start with \"Santa says…\".",
-   "Move when you shouldn''t, or miss a real command, and you drink.",
-   "The last one standing becomes the next Santa."]'),
-('Who''s Most Likely To', 'most-likely', 'Point at whoever fits best. Fingers on you means sips for you.',
- '["Someone reads out \"Who''s most likely to…\", like \"…burn the turkey\".",
-   "On three, everyone points at one person.",
-   "Drink once for every finger pointing at you.",
-   "Whoever got the most fingers reads the next one."]')
+   "First team to clear the other side''s cups wins."]')
 on conflict do nothing;
+
+-- v5: only Bauble Pong stays from the original eight built-in games.
+delete from games where slug in ('twelve-drinks', 'ring-of-fire', 'flip-cup', 'movie', 'never', 'santa-says', 'most-likely');
+
+-- ---------- Bauble Pong tournament ----------
+
+create or replace function tournament_view(p_token uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _person(p_token);
+  return jsonb_build_object(
+    'seeds',   coalesce((select seeds from tournament where id = 1), '[]'),
+    'results', coalesce((select results from tournament where id = 1), '{}'),
+    'teams',   coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name) order by id) from teams), '[]'));
+end $$;
+
+create or replace function tournament_set(p_token uuid, p_seeds jsonb, p_results jsonb) returns void
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _admin(p_token);
+  insert into tournament (id, seeds, results, updated_at)
+  values (1, coalesce(p_seeds, '[]'), coalesce(p_results, '{}'), now())
+  on conflict (id) do update set seeds = excluded.seeds, results = excluded.results, updated_at = now();
+end $$;
 
 -- ---------- organiser tools ----------
 
@@ -579,5 +577,6 @@ grant execute on function
   add_game(uuid, text), games_view(uuid), toggle_vote(uuid, bigint), delete_game(uuid, bigint),
   admin_add_guest(uuid, text, uuid), admin_reset_pin(uuid, uuid, text), admin_remove_person(uuid, uuid),
   quiz_night_get(uuid), quiz_night_set(uuid, jsonb, int, boolean), quiz_scores_view(uuid),
-  quiz_score_add(uuid, int, int), quiz_scores_reset(uuid)
+  quiz_score_add(uuid, int, int), quiz_scores_reset(uuid),
+  tournament_view(uuid), tournament_set(uuid, jsonb, jsonb)
 to anon;

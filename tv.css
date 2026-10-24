@@ -25,6 +25,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 clamp(1rem, 1.4vw, 1.5rem)/1.4 var(--font-body); overflow: hidden; }
 button { font: inherit; cursor: pointer; }

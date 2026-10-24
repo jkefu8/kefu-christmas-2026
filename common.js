@@ -31,6 +31,13 @@ function h(tag, props = {}, ...kids) {
   return el;
 }
 const $ = sel => document.querySelector(sel);
+
+// Replace an element's contents. Like h(), it flattens lists and skips null/false,
+// so `cond && h(...)` and arrays of elements are safe to pass.
+function fill(el, ...kids) {
+  el.replaceChildren(...kids.flat().filter(k => k != null && k !== false));
+  return el;
+}
 const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 let toastTimer;
