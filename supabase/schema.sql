@@ -95,7 +95,7 @@ create table if not exists quiz_scores (
   points  int not null default 0
 );
 
--- v5: Bauble Pong knockout. seeds = team ids in bracket order; results = {"<round>-<match>": winner team id}.
+-- v5: Beer Pong knockout. seeds = team ids in bracket order; results = {"<round>-<match>": winner team id}.
 create table if not exists tournament (
   id         int primary key default 1 check (id = 1),
   seeds      jsonb not null default '[]',
@@ -301,6 +301,23 @@ begin
   end loop;
 end $$;
 
+-- Organiser only: every team with all its members, including people who haven't spun yet.
+create or replace function admin_teams_full(p_token uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _admin(p_token);
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'id', t.id, 'name', t.name,
+      'members', coalesce((select jsonb_agg(jsonb_build_object(
+                             'id', pe.id, 'full_name', pe.full_name, 'spun', m.revealed,
+                             'signed_up', pe.pin_hash is not null) order by pe.full_name)
+                           from team_members m join people pe on pe.id = m.person_id
+                           where m.team_id = t.id), '[]')
+    ) order by t.id)
+    from teams t), '[]');
+end $$;
+
 -- Reveals the caller's own team. Spinning twice just shows the same team.
 create or replace function spin(p_token uuid) returns jsonb
 language plpgsql security definer set search_path = public, extensions as $$
@@ -500,19 +517,33 @@ begin
   delete from games where id = p_id and (added_by = p.id or p.is_admin);
 end $$;
 
+-- v6: renamed from Bauble Pong. The slug stays the same so its votes and art carry over.
+-- If someone already suggested their own "Beer Pong", fold its votes into the built-in one first.
+do $$
+declare v_builtin bigint; v_dup bigint;
+begin
+  select id into v_builtin from games where slug = 'bauble-pong';
+  select id into v_dup from games where lower(trim(name)) = 'beer pong' and slug is distinct from 'bauble-pong';
+  if v_builtin is not null and v_dup is not null then
+    insert into votes (person_id, game_id) select person_id, v_builtin from votes where game_id = v_dup on conflict do nothing;
+    delete from games where id = v_dup;
+  end if;
+  update games set name = 'Beer Pong' where id = v_builtin and name <> 'Beer Pong';
+end $$;
+
 -- The built-in game (adults only). Re-running skips it if it's already there.
 insert into games (name, slug, description, steps) values
-('Bauble Pong', 'bauble-pong', 'Team-against-team beer pong with a festive twist.',
+('Beer Pong', 'bauble-pong', 'Team-against-team beer pong with a festive twist.',
  '["Set up six cups in a triangle at each end of the table.",
    "Teams take turns throwing a ping-pong ball (or an unbreakable bauble) at the other side''s cups.",
    "Land one and the other team drinks that cup and takes it away.",
    "First team to clear the other side''s cups wins."]')
 on conflict do nothing;
 
--- v5: only Bauble Pong stays from the original eight built-in games.
+-- v5: only Beer Pong stays from the original eight built-in games.
 delete from games where slug in ('twelve-drinks', 'ring-of-fire', 'flip-cup', 'movie', 'never', 'santa-says', 'most-likely');
 
--- ---------- Bauble Pong tournament ----------
+-- ---------- Beer Pong tournament ----------
 
 create or replace function tournament_view(p_token uuid) returns jsonb
 language plpgsql security definer set search_path = public, extensions as $$
@@ -578,5 +609,5 @@ grant execute on function
   admin_add_guest(uuid, text, uuid), admin_reset_pin(uuid, uuid, text), admin_remove_person(uuid, uuid),
   quiz_night_get(uuid), quiz_night_set(uuid, jsonb, int, boolean), quiz_scores_view(uuid),
   quiz_score_add(uuid, int, int), quiz_scores_reset(uuid),
-  tournament_view(uuid), tournament_set(uuid, jsonb, jsonb)
+  tournament_view(uuid), tournament_set(uuid, jsonb, jsonb), admin_teams_full(uuid)
 to anon;

@@ -12,7 +12,7 @@ About 20 adults (all over 18, mostly middle-aged parents) from three related fam
 
 ## Product Purpose
 
-The family's private hub for Christmas 2026, named **"A Xmas for the Ages"**. Guests sign in with their name and a 4-digit PIN, spin a wheel to reveal their team of three, submit quiz questions, vote on games, and follow the Bauble Pong knockout. On the day, the organiser runs quiz night from a TV screen. Success: everyone signs up without help, the team reveal and quiz night feel like events, and nobody has to ask "how do I…".
+The family's private hub for Christmas 2026, named **"A Xmas for the Ages"**. Guests sign in with their name and a 4-digit PIN, spin a wheel to reveal their team of three, submit quiz questions, vote on games, and follow the Beer Pong knockout. On the day, the organiser runs quiz night from a TV screen. Success: everyone signs up without help, the team reveal and quiz night feel like events, and nobody has to ask "how do I…".
 
 ## Positioning
 
@@ -21,7 +21,7 @@ It is built for this family only: their guest list, nicknames, partners kept on 
 ## Operating Context
 
 - Phones in the weeks before: sign up, spin for a team, add quiz questions (true/false or 4-choice, optional photo), vote on games.
-- Christmas Day: a laptop connected to the living-room TV shows the quiz screen (`tv.html`). Teams shout or write their answers, and the organiser awards points. Phones follow the Bauble Pong bracket live.
+- Christmas Day: a laptop connected to the living-room TV shows the quiz screen (`tv.html`). Teams shout or write their answers, and the organiser awards points. Phones follow the Beer Pong bracket live.
 - The organiser uses the Organiser tab for the guest list, PIN resets, the secret team draw, revealing the remaining teams at the end of November, and the bracket.
 
 ## Capabilities and Constraints
@@ -29,7 +29,7 @@ It is built for this family only: their guest list, nicknames, partners kept on 
 - Static HTML/CSS/JS on GitHub Pages, with a Supabase backend reached only through locked database functions (see CLAUDE.md). No build step.
 - Name + PIN sign-in, restricted to the guest list, with nickname and misspelling matching.
 - Teams of three (some of four), partners always on different teams, revealed by each person's spin.
-- Drinking games are adults-only. Only Bauble Pong is built in; guests can suggest others.
+- Drinking games are adults-only. Only Beer Pong is built in; guests can suggest others.
 - Family names and data never go in the public repo.
 
 ## Brand Commitments

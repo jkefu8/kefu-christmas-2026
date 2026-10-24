@@ -431,7 +431,7 @@ async function renderGames(panel) {
   await renderTournament(tourney);
 }
 
-// ---------- Bauble Pong tournament ----------
+// ---------- Beer Pong tournament ----------
 
 // Bracket positions that spread the seeds so byes go to the top seeds.
 // size 8 -> [0, 7, 3, 4, 1, 6, 2, 5] (0-based seed numbers).
@@ -490,7 +490,7 @@ async function renderTournament(box) {
   };
   const drawBracket = () => save(shuffle(t.teams.map(x => x.id)), {});
 
-  const intro = [h('h2', {}, 'Bauble Pong knockout')];
+  const intro = [h('h2', {}, 'Beer Pong knockout')];
   if (!t.teams.length) {
     return fill(box, intro, h('p', { class: 'lede' }, 'The bracket appears here once the teams have been drawn.'));
   }
@@ -526,7 +526,7 @@ async function renderTournament(box) {
 
   fill(box, intro,
     champion != null
-      ? h('p', { class: 'champion' }, icon('trophy'), `Team ${name(champion)} are the Bauble Pong champions!`)
+      ? h('p', { class: 'champion' }, icon('trophy'), `Team ${name(champion)} are the Beer Pong champions!`)
       : h('p', { class: 'lede' }, me.is_admin ? 'Tap the winning team of each match. Tap again to undo.' : 'Winners move on automatically. The organiser records each result.'),
     h('div', { class: 'bracket-scroll' }, h('div', { class: 'bracket' }, rounds.map((ms, r) =>
       h('section', { class: 'round' },
@@ -572,7 +572,7 @@ function drawTeams(people) {
 }
 
 async function renderAdmin(panel) {
-  const [people, view, questions] = await Promise.all([call('people_list'), call('teams_view'), call('all_questions')]);
+  const [people, view, questions, fullTeams] = await Promise.all([call('people_list'), call('teams_view'), call('all_questions'), call('admin_teams_full')]);
   const byId = Object.fromEntries(people.map(p => [p.id, p]));
   const teamOf = {};
   view.teams.forEach(t => t.members.forEach(m => { teamOf[m.id] = t.name; }));
@@ -660,7 +660,18 @@ async function renderAdmin(panel) {
     h('p', { class: 'lede' }, `Open this on the laptop connected to the TV. ${questions.length} questions so far. Space reveals the answer, the right arrow moves on, F goes fullscreen.`),
     h('a', { class: 'btn', href: 'tv.html', target: '_blank', rel: 'noopener' }, 'Open the TV quiz screen'));
 
-  fill(panel, drawBox, tvBox, peopleBox, quizBox);
+  const fullBox = fullTeams.length > 0 && h('section', { class: 'card stack' },
+    h('h2', {}, 'Full team list'),
+    h('p', { class: 'lede' }, "Everyone in every team. Names in italics haven't spun yet, so keep those a secret."),
+    h('div', { class: 'team-grid' }, fullTeams.map((t, i) =>
+      h('article', { class: 'team-card full', style: `--team:${teamColour(i)}` },
+        h('div', { class: 'team-head' },
+          icon('crown', 'crown'),
+          h('span', { class: 'team-count' }, `${t.members.filter(m => m.spun).length}/${t.members.length} spun`),
+          h('h4', {}, t.name)),
+        h('ul', {}, t.members.map(m => h('li', { class: m.spun ? '' : 'slot' }, m.full_name)))))));
+
+  fill(panel, drawBox, fullBox, tvBox, peopleBox, quizBox);
 }
 
 // ---------- start ----------
