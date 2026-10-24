@@ -34,7 +34,7 @@
       <form id="auth-form" class="card stack" novalidate>
         <p id="auth-intro" class="lede">Put your full name in and choose a 4-digit PIN. You'll use them to get back in.</p>
         <label for="auth-name">Your full name</label>
-        <input id="auth-name" name="name" autocomplete="name" autocapitalize="words" placeholder="e.g. Grace Kefu" required>
+        <input id="auth-name" name="name" autocomplete="name" autocapitalize="words" placeholder="First and last name" required>
         <label for="auth-pin">4-digit PIN</label>
         <input id="auth-pin" name="pin" inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="off" placeholder="••••" required>
         <p class="hint" id="auth-pin-hint">Pick a new one. Please don't reuse your bank card PIN.</p>
@@ -64,6 +64,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
+  <script src="art.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
