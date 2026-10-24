@@ -386,12 +386,22 @@ async function renderQuiz(panel) {
 
 // ---------- Games ----------
 
+// How-to-play guide for a game: its illustration and numbered steps, folded away.
+function howToPlay(g) {
+  return g?.steps && h('details', { class: 'how' },
+    h('summary', {}, 'How to play'),
+    gameArt(g.slug),
+    h('ol', { class: 'steps' }, g.steps.map(s => h('li', {}, s))));
+}
+
 async function renderGames(panel) {
   const games = await call('games_view');
-  const top = Math.max(1, ...games.map(g => g.votes));
+  const main = games.find(g => g.slug === 'bauble-pong'); // Beer Pong: the tournament, not a vote
+  const others = games.filter(g => g !== main);
+  const top = Math.max(1, ...others.map(g => g.votes));
   const name = h('input', { id: 'game-name', maxlength: 60, placeholder: 'e.g. Charades, Articulate, Pictionary' });
   const form = h('form', { class: 'card stack' },
-    h('label', { for: 'game-name' }, 'Suggest another game'),
+    h('label', { for: 'game-name' }, 'Add a game'),
     h('div', { class: 'row' }, name, h('button', { class: 'btn', type: 'submit' }, 'Add')));
   form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -409,26 +419,23 @@ async function renderGames(panel) {
   fill(panel,
     tourney,
     h('div', { class: 'stack tight' },
-      h('h2', {}, 'Games to play'),
-      h('p', { class: 'lede' }, 'Tap the number to vote. Tap again to take your vote back. Drinking games are adults only, so please drink responsibly.')),
-    games.length
-      ? h('ul', { class: 'plain stack' }, games.map(g => h('li', { class: 'game' },
-          h('div', { class: 'game-top' },
-            voteButton(g),
-            h('div', { class: 'game-title' },
-              h('p', { class: 'game-name' }, g.name),
-              h('p', { class: 'game-voters' }, g.description || `Suggested by ${g.added_by || 'someone'}`)),
-            g.can_delete && !g.slug ? confirmButton('Remove', async () => { await call('delete_game', { p_id: g.id }); renderGames(panel); }) : null),
-          h('div', { class: 'bar' }, h('span', { style: `transform:scaleX(${g.votes / top})` })),
-          g.voters.length > 0 && h('p', { class: 'game-voters' }, 'Votes: ' + g.voters.join(', ')),
-          g.steps && h('details', { class: 'how' },
-            h('summary', {}, 'How to play'),
-            gameArt(g.slug),
-            h('ol', { class: 'steps' }, g.steps.map(s => h('li', {}, s)))))))
-      : h('p', { class: 'hint' }, 'No games yet. Suggest the first one below.'),
+      h('h2', {}, 'More games'),
+      h('p', { class: 'lede' }, others.length
+        ? 'Tap the number to vote for what else we play. Tap again to take your vote back.'
+        : 'More games are on the way. Add one below and everyone can vote on it.')),
+    others.length > 0 && h('ul', { class: 'plain stack' }, others.map(g => h('li', { class: 'game' },
+      h('div', { class: 'game-top' },
+        voteButton(g),
+        h('div', { class: 'game-title' },
+          h('p', { class: 'game-name' }, g.name),
+          h('p', { class: 'game-voters' }, g.description || `Added by ${g.added_by || 'someone'}`)),
+        g.can_delete ? confirmButton('Remove', async () => { await call('delete_game', { p_id: g.id }); renderGames(panel); }) : null),
+      h('div', { class: 'bar' }, h('span', { style: `transform:scaleX(${g.votes / top})` })),
+      g.voters.length > 0 && h('p', { class: 'game-voters' }, 'Votes: ' + g.voters.join(', ')),
+      howToPlay(g)))),
     form,
   );
-  await renderTournament(tourney);
+  await renderTournament(tourney, main);
 }
 
 // ---------- Beer Pong tournament ----------
@@ -479,18 +486,22 @@ function roundName(r, total) {
   return ['Final', 'Semi-finals', 'Quarter-finals'][fromEnd] || `Round ${r + 1}`;
 }
 
-async function renderTournament(box) {
+async function renderTournament(box, game) {
   let t = await call('tournament_view');
   const teamIdx = Object.fromEntries(t.teams.map((x, i) => [x.id, i]));
   const name = id => t.teams[teamIdx[id]]?.name;
 
   const save = async (seeds, results) => {
     await call('tournament_set', { p_seeds: seeds, p_results: pruneResults(seeds, results) });
-    renderTournament(box);
+    renderTournament(box, game);
   };
   const drawBracket = () => save(shuffle(t.teams.map(x => x.id)), {});
 
-  const intro = [h('h2', {}, 'Beer Pong knockout')];
+  const intro = [
+    h('h2', {}, 'Beer Pong tournament'),
+    h('p', { class: 'lede' }, 'The main event: every team plays, knockout style. Adults only, so please drink responsibly.'),
+    howToPlay(game),
+  ];
   if (!t.teams.length) {
     return fill(box, intro, h('p', { class: 'lede' }, 'The bracket appears here once the teams have been drawn.'));
   }
@@ -542,7 +553,7 @@ async function renderTournament(box) {
     if (document.hidden || box.querySelector(':disabled')) return;
     try {
       const next = await call('tournament_view');
-      if (JSON.stringify(next) !== JSON.stringify(t)) { t = next; renderTournament(box); }
+      if (JSON.stringify(next) !== JSON.stringify(t)) { t = next; renderTournament(box, game); }
     } catch { /* try again next tick */ }
   }, POLL_MS);
 }
