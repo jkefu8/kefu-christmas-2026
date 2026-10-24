@@ -3,35 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Kefu Christmas 2026</title>
-  <meta name="description" content="Teams, quiz questions and game votes for the Kefu family Christmas.">
+  <title>A Xmas for the Ages</title>
+  <meta name="description" content="Teams, quiz questions and games for the Kefu family Christmas 2026.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titan+One&family=Figtree:wght@500;600;700;800&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="masthead">
-    <div class="wrap masthead-inner">
-      <div>
-        <p class="eyebrow" id="sleeps">Christmas 2026</p>
-        <h1>Kefu Christmas</h1>
-      </div>
-      <div class="whoami" id="whoami" hidden>
-        <span id="whoami-name"></span>
-        <button class="btn ghost small" id="signout" type="button">Log out</button>
-      </div>
+  <header class="cracker">
+    <div class="wrap cracker-inner">
+      <h1 class="site-name">A Xmas <span>for the Ages</span></h1>
+      <p class="sleeps" id="sleeps">Christmas 2026</p>
     </div>
   </header>
+  <div class="wrap userbar" id="whoami" hidden>
+    <span id="whoami-name"></span>
+    <button class="btn ghost small" id="signout" type="button">Log out</button>
+  </div>
 
   <main class="wrap">
     <!-- Sign up / log in -->
     <section id="auth" class="auth" hidden>
-      <div class="mode-switch" role="tablist">
+      <div class="mode-switch" role="tablist" aria-label="Sign in or sign up">
         <button type="button" role="tab" id="mode-new" class="is-on" aria-selected="true">I'm new here</button>
         <button type="button" role="tab" id="mode-back" aria-selected="false">I've been here before</button>
       </div>
       <form id="auth-form" class="card stack" novalidate>
+        <h2>Pull up a chair</h2>
         <p id="auth-intro" class="lede">Put your full name in and choose a 4-digit PIN. You'll use them to get back in.</p>
         <label for="auth-name">Your full name</label>
         <input id="auth-name" name="name" autocomplete="name" autocapitalize="words" placeholder="First and last name" required>

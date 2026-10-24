@@ -1,4 +1,4 @@
-// Kefu Christmas 2026: front end. Talks to Supabase only through the
+// A Xmas for the Ages (Kefu Christmas 2026): front end. Talks to Supabase only through the
 // database functions in supabase/schema.sql (sb.rpc), never to tables.
 
 const TAB_KEY = 'kefu-xmas-tab';
@@ -121,7 +121,8 @@ function teamBoard(view) {
       style: `--team:${teamColour(i)}`, 'data-team': t.id,
     },
       h('div', { class: 'team-head' },
-        h('h4', {}, 'Team ' + t.name),
+        icon('crown', 'crown'),
+        h('h4', {}, t.name),
         h('span', { class: 'team-count' }, `${t.members.length}/${t.size}`)),
       h('ul', {},
         t.members.map(m => h('li', {}, m.full_name + (m.id === me.id ? ' (you)' : ''))),
@@ -145,14 +146,14 @@ function drawWheel(canvas, teams) {
     ctx.closePath();
     ctx.fillStyle = cssVar(`--team-${(i % TEAM_COLOURS) + 1}`);
     ctx.fill();
-    ctx.strokeStyle = cssVar('--surface');
+    ctx.strokeStyle = cssVar('--slip');
     ctx.lineWidth = 3;
     ctx.stroke();
     ctx.save();
     ctx.translate(r, r);
     ctx.rotate(start + seg / 2);
-    ctx.fillStyle = '#fff';
-    ctx.font = `800 ${teams.length > 8 ? 12 : 15}px ${cssVar('--font-body')}`;
+    ctx.fillStyle = cssVar(`--team-${(i % TEAM_COLOURS) + 1}-ink`);
+    ctx.font = `${teams.length > 8 ? 13 : 17}px ${cssVar('--font-display')}`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     ctx.fillText(t.name, r - 18, 0);
@@ -160,7 +161,7 @@ function drawWheel(canvas, teams) {
   });
   ctx.beginPath();
   ctx.arc(r, r, 26, 0, Math.PI * 2);
-  ctx.fillStyle = cssVar('--surface');
+  ctx.fillStyle = cssVar('--gold');
   ctx.fill();
 }
 
@@ -183,7 +184,6 @@ async function renderTeams(panel) {
 
   if (!view.teams.length) {
     fill(panel, h('section', { class: 'my-team' },
-      h('p', { class: 'eyebrow' }, 'Team draw'),
       h('h2', {}, 'The wheel is coming'),
       h('p', {}, 'Once the organiser sets up the draw, you can spin the wheel here to find your team of three.')));
     return;
@@ -208,6 +208,7 @@ async function renderTeams(panel) {
     try {
       const res = await call('spin');
       await spinTo(canvas, view.teams, res.team_id);
+      confetti(canvas);
       view = await call('teams_view');
       fill(board, teamBoard(view));
       setStatus();
@@ -215,15 +216,15 @@ async function renderTeams(panel) {
     } finally { spinning = false; }
   }));
 
-  fill(panel, 
-    h('section', { class: 'stack' },
-      h('p', { class: 'eyebrow' }, `${view.teams.reduce((n, t) => n + t.members.length, 0)} of ${view.teams.reduce((n, t) => n + t.size, 0)} have spun`),
-      h('h2', {}, 'The teams'),
-      board),
-    h('section', { class: 'wheel-box' },
+  // Not spun yet: the wheel comes first. Already spun: your team board comes first.
+  const boardSection = h('section', { class: 'stack' },
+      h('h2', { class: 'section-title' }, 'The teams'),
+      h('p', { class: 'lede' }, `${view.teams.reduce((n, t) => n + t.members.length, 0)} of ${view.teams.reduce((n, t) => n + t.size, 0)} have spun so far.`),
+      board);
+  const wheelSection = h('section', { class: 'wheel-box' },
       h('div', { class: 'wheel-wrap' }, h('div', { class: 'wheel-pointer', 'aria-hidden': 'true' }), canvas),
-      status, spinBtn),
-  );
+      status, spinBtn);
+  fill(panel, view.my_team ? [boardSection, wheelSection] : [wheelSection, boardSection]);
   drawWheel(canvas, view.teams);
   if (view.my_team) { // rest the wheel on your team
     const seg = 360 / view.teams.length, i = view.teams.findIndex(t => t.id === view.my_team);
@@ -282,7 +283,7 @@ function questionCard(x, actions) {
       h('p', { class: 'q-text' }, x.question),
       x.options
         ? h('ul', { class: 'q-options' }, x.options.map((o, i) =>
-            h('li', { class: i === x.correct ? 'is-correct' : '' }, i === x.correct ? `✓ ${o}` : o)))
+            h('li', { class: i === x.correct ? 'is-correct' : '' }, i === x.correct && icon('check'), o)))
         : h('p', { class: 'q-answer' }, h('b', {}, 'Answer: '), x.answer)),
     actions);
 }
@@ -478,7 +479,7 @@ async function renderTournament(box) {
   };
   const drawBracket = () => save(shuffle(t.teams.map(x => x.id)), {});
 
-  const intro = [h('p', { class: 'eyebrow' }, 'Tournament'), h('h2', {}, 'Bauble Pong knockout')];
+  const intro = [h('h2', {}, 'Bauble Pong knockout')];
   if (!t.teams.length) {
     return fill(box, intro, h('p', { class: 'lede' }, 'The bracket appears here once the teams have been drawn.'));
   }
@@ -498,7 +499,7 @@ async function renderTournament(box) {
     const decided = m.winner != null && !m.bye;
     const cls = 'side' + (m.winner === id ? ' won' : decided ? ' lost' : '');
     const label = [h('span', { class: 'dot', style: `--team:${teamColour(teamIdx[id])}` }), h('span', {}, 'Team ' + name(id)),
-      m.winner === id && !m.bye && h('span', { class: 'tick' }, '✓')];
+      m.winner === id && !m.bye && icon('check')];
     const canPick = me.is_admin && !m.bye && m.a !== undefined && m.b !== undefined;
     if (!canPick) return h('div', { class: cls }, label);
     return h('button', {
@@ -514,7 +515,7 @@ async function renderTournament(box) {
 
   fill(box, intro,
     champion != null
-      ? h('p', { class: 'champion', style: `--team:${teamColour(teamIdx[champion])}` }, `🏆 Team ${name(champion)} are the Bauble Pong champions!`)
+      ? h('p', { class: 'champion' }, icon('trophy'), `Team ${name(champion)} are the Bauble Pong champions!`)
       : h('p', { class: 'lede' }, me.is_admin ? 'Tap the winning team of each match. Tap again to undo.' : 'Winners move on automatically. The organiser records each result.'),
     h('div', { class: 'bracket-scroll' }, h('div', { class: 'bracket' }, rounds.map((ms, r) =>
       h('section', { class: 'round' },

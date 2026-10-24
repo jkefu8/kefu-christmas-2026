@@ -1,5 +1,5 @@
-// Kefu Christmas 2026: TV quiz screen. Organiser only.
-// Keys: Space/Enter reveal or next · → next · ← back · S scores · T 30s timer · F fullscreen.
+// A Xmas for the Ages: TV quiz screen. Organiser only.
+// Keys: Space/Enter or Right arrow reveal/next, Left arrow back, S scores, T 30s timer, F fullscreen.
 
 const TIMER_SECONDS = 30;
 const LETTERS = ['A', 'B', 'C', 'D'];
@@ -57,9 +57,10 @@ async function load() {
 
 function topStrip(left) {
   return h('header', { class: 'tv-top' },
+    h('span', { class: 'tv-brand' }, 'A Xmas for the Ages'),
     h('span', {}, left),
     h('div', { class: 'timer', id: 'timer', hidden: !timer }, h('span', { id: 'timer-fill' })),
-    h('span', { class: 'timer-label', id: 'timer-label' }, timer ? '' : 'Kefu Christmas 2026'));
+    h('span', { class: 'timer-label', id: 'timer-label' }));
 }
 
 function scoreChips(q) {
@@ -67,12 +68,12 @@ function scoreChips(q) {
   return h('div', { class: 'bar-group' }, state.teams.map(t => {
     const isOwn = t.id === own;
     return h('span', {
-      class: 'score-chip' + (isOwn ? ' own' : ''), style: `--team:${teamColour(teamIndex(t.id))}`,
+      class: 'score-chip' + (isOwn ? ' own' : ''), style: `--team:${teamColour(teamIndex(t.id))};--team-ink:${teamInk(teamIndex(t.id))}`,
       title: isOwn ? "Their own question, so they can't score" : `Give Team ${t.name} a point`,
     },
       h('button', { class: 'plus', type: 'button', disabled: isOwn, onclick: busy(() => addPoint(t.id, 1)) }, `${t.name} +1`),
       h('span', { class: 'pts' }, String(state.scores[t.id] || 0)),
-      h('button', { class: 'minus', type: 'button', 'aria-label': `Take a point from Team ${t.name}`, onclick: busy(() => addPoint(t.id, -1)) }, '−'));
+      h('button', { class: 'minus', type: 'button', 'aria-label': `Take a point from Team ${t.name}`, onclick: busy(() => addPoint(t.id, -1)) }, icon('minus')));
   }));
 }
 
@@ -80,7 +81,7 @@ function controls(extra) {
   return h('footer', { class: 'bar' },
     extra || h('span'),
     h('div', { class: 'bar-group' },
-      state.view === 'question' && h('button', { class: 'btn', type: 'button', onclick: back, disabled: state.idx === 0 && !state.revealed }, '← Back'),
+      state.view === 'question' && h('button', { class: 'btn', type: 'button', onclick: back, disabled: state.idx === 0 && !state.revealed }, icon('back'), 'Back'),
       state.view === 'question' && h('button', { class: 'btn primary', type: 'button', onclick: forward },
         state.revealed ? (state.idx === state.questions.length - 1 ? 'Final scores' : 'Next question') : 'Reveal answer',
         h('span', { class: 'key' }, 'Space')),
@@ -97,7 +98,6 @@ function renderStart() {
   fill(tv, 
     topStrip('Quiz night'),
     h('main', { class: 'stage' },
-      h('p', { class: 'eyebrow' }, 'Kefu Christmas 2026'),
       h('h1', { class: 'big-title' }, 'Quiz Night'),
       h('p', { class: 'lede' }, n
         ? `${n} questions from ${people} ${people === 1 ? 'person' : 'people'}, ${state.teams.length} teams. Nobody can score on a question their own team wrote.`
@@ -125,7 +125,7 @@ function renderQuestion() {
         h('div', { class: 'tile' + (i === q.correct ? ' correct' : '') },
           h('span', { class: 'letter' }, q.kind === 'tf' ? '' : LETTERS[i]),
           h('span', {}, o),
-          state.revealed && i === q.correct && h('span', { class: 'tick', 'aria-label': 'Correct' }, '✓')))),
+          state.revealed && i === q.correct && icon('check')))),
       state.revealed && h('p', { class: 'asked-by' },
         'Asked by ', h('b', {}, q.author), ownName ? `. Team ${ownName} can't score this one.` : '.')),
     controls(state.revealed ? scoreChips(q) : null));
@@ -149,7 +149,7 @@ function leaderboard() {
 function renderScores() {
   fill(tv, 
     topStrip(`After question ${state.idx + 1} of ${state.questions.length}`),
-    h('main', { class: 'stage' }, h('p', { class: 'eyebrow' }, 'Scoreboard'), h('h2', { class: 'big-title' }, 'How the teams stand'), leaderboard()),
+    h('main', { class: 'stage' }, h('h2', { class: 'big-title' }, 'How the teams stand'), leaderboard()),
     controls());
 }
 
@@ -159,8 +159,7 @@ function renderEnd() {
   fill(tv, 
     topStrip('Final scores'),
     h('main', { class: 'stage' },
-      h('p', { class: 'eyebrow' }, 'And the winner is…'),
-      h('h1', { class: 'winner' }, winners.length
+      h('h1', { class: 'winner' }, h('span', { class: 'winner-lead' }, 'And the winner is…'), winners.length
         ? (winners.length === 1 ? `Team ${winners[0].name}!` : `A tie: ${winners.map(t => t.name).join(' & ')}!`)
         : 'Nobody scored. Everyone loses!'),
       winners[0] && h('p', { class: 'lede' }, winners.flatMap(t => t.members.map(m => m.full_name)).join(', ')),
