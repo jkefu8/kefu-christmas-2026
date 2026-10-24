@@ -82,6 +82,19 @@ alter table games add column if not exists slug        text; -- picks the illust
 alter table games add column if not exists description text;
 alter table games add column if not exists steps       jsonb;
 
+-- v4: quiz night. One row holds where the TV quiz is up to; scores are per team.
+create table if not exists quiz_night (
+  id           int primary key default 1 check (id = 1),
+  question_ids jsonb not null default '[]',
+  idx          int not null default 0,
+  revealed     boolean not null default false,
+  updated_at   timestamptz not null default now()
+);
+create table if not exists quiz_scores (
+  team_id int primary key references teams on delete cascade,
+  points  int not null default 0
+);
+
 alter table people         enable row level security;
 alter table sessions       enable row level security;
 alter table teams          enable row level security;
@@ -89,6 +102,8 @@ alter table team_members   enable row level security;
 alter table quiz_questions enable row level security;
 alter table games          enable row level security;
 alter table votes          enable row level security;
+alter table quiz_night     enable row level security;
+alter table quiz_scores    enable row level security;
 
 revoke all on all tables    in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
@@ -365,7 +380,8 @@ begin
   perform _admin(p_token);
   return coalesce((select jsonb_agg(jsonb_build_object(
                      'id', q.id, 'kind', q.kind, 'question', q.question, 'answer', q.answer,
-                     'options', q.options, 'correct', q.correct, 'photo', q.photo, 'author', pe.full_name)
+                     'options', q.options, 'correct', q.correct, 'photo', q.photo,
+                     'author', pe.full_name, 'author_id', pe.id)
                      order by pe.full_name, q.created_at)
                    from quiz_questions q join people pe on pe.id = q.person_id), '[]');
 end $$;
@@ -375,6 +391,55 @@ language plpgsql security definer set search_path = public, extensions as $$
 declare p people := _person(p_token);
 begin
   delete from quiz_questions where id = p_id and (person_id = p.id or p.is_admin);
+end $$;
+
+-- ---------- quiz night (TV screen) ----------
+
+create or replace function quiz_night_get(p_token uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _admin(p_token);
+  return coalesce((select jsonb_build_object('question_ids', question_ids, 'idx', idx, 'revealed', revealed)
+                   from quiz_night where id = 1),
+                  jsonb_build_object('question_ids', '[]'::jsonb, 'idx', 0, 'revealed', false));
+end $$;
+
+create or replace function quiz_night_set(p_token uuid, p_question_ids jsonb, p_idx int, p_revealed boolean) returns void
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _admin(p_token);
+  insert into quiz_night (id, question_ids, idx, revealed, updated_at)
+  values (1, coalesce(p_question_ids, '[]'), coalesce(p_idx, 0), coalesce(p_revealed, false), now())
+  on conflict (id) do update set question_ids = excluded.question_ids, idx = excluded.idx,
+                                 revealed = excluded.revealed, updated_at = now();
+end $$;
+
+-- Everyone can see the scoreboard. [{team_id, name, points}], highest first.
+create or replace function quiz_scores_view(p_token uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _person(p_token);
+  return coalesce((select jsonb_agg(jsonb_build_object('team_id', t.id, 'name', t.name, 'points', coalesce(s.points, 0))
+                                    order by coalesce(s.points, 0) desc, t.id)
+                   from teams t left join quiz_scores s on s.team_id = t.id), '[]');
+end $$;
+
+create or replace function quiz_score_add(p_token uuid, p_team_id int, p_delta int) returns int
+language plpgsql security definer set search_path = public, extensions as $$
+declare v int;
+begin
+  perform _admin(p_token);
+  insert into quiz_scores (team_id, points) values (p_team_id, greatest(0, p_delta))
+  on conflict (team_id) do update set points = greatest(0, quiz_scores.points + p_delta)
+  returning points into v;
+  return v;
+end $$;
+
+create or replace function quiz_scores_reset(p_token uuid) returns void
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _admin(p_token);
+  delete from quiz_scores where true;
 end $$;
 
 -- ---------- games ----------
@@ -512,5 +577,7 @@ grant execute on function
   teams_view(uuid), save_teams(uuid, jsonb), spin(uuid), admin_reveal_all(uuid), admin_place_person(uuid, uuid),
   add_question(uuid, text, text, jsonb, int, text), my_questions(uuid), all_questions(uuid), delete_question(uuid, bigint),
   add_game(uuid, text), games_view(uuid), toggle_vote(uuid, bigint), delete_game(uuid, bigint),
-  admin_add_guest(uuid, text, uuid), admin_reset_pin(uuid, uuid, text), admin_remove_person(uuid, uuid)
+  admin_add_guest(uuid, text, uuid), admin_reset_pin(uuid, uuid, text), admin_remove_person(uuid, uuid),
+  quiz_night_get(uuid), quiz_night_set(uuid, jsonb, int, boolean), quiz_scores_view(uuid),
+  quiz_score_add(uuid, int, int), quiz_scores_reset(uuid)
 to anon;
