@@ -527,9 +527,10 @@ async function renderTournament(box, game) {
 
   const intro = [
     h('div', { class: 'main-game-head' }, h('span', { class: 'main-tag' }, 'Main game'), h('h2', {}, 'Beer Pong tournament')),
-    h('p', { class: 'lede' }, 'Every team plays, knockout style. Adults only, so please drink responsibly.'),
-    h('h3', { class: 'slip-sub' }, 'Tournament rules'),
-    h('ul', { class: 'rules' }, TOURNAMENT_RULES.map(r => h('li', {}, r))),
+    h('p', { class: 'lede' }, 'Every team plays, knockout style.'),
+    h('details', { class: 'how' },
+      h('summary', {}, 'Tournament rules'),
+      h('ul', { class: 'rules' }, TOURNAMENT_RULES.map(r => h('li', {}, r)))),
     howToPlay(game),
     h('h3', { class: 'slip-sub' }, 'The bracket'),
   ];
