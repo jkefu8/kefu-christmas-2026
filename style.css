@@ -133,8 +133,8 @@ input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
 .chip { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: .25rem .75rem; font-size: .92rem; }
 
-.team-card { border-top: 6px solid var(--team, var(--line)); }
-.team-card.is-mine { border-color: var(--team); border-top-width: 6px; }
+.team-card h4::before { content: ""; display: inline-block; width: .7em; height: .7em; border-radius: 50%; background: var(--team, var(--line)); margin-right: .45em; vertical-align: .02em; }
+.team-card.is-mine { border: 2px solid var(--team); }
 .team-card.just-joined { box-shadow: 0 0 0 4px var(--gold); }
 .team-head { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
 .team-count { font-size: .85rem; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
