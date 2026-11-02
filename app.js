@@ -5,6 +5,7 @@ const TAB_KEY = 'kefu-xmas-tab';
 const TEAM_NAMES = ['Tinsel', 'Sprouts', 'Crackers', 'Baubles', 'Mince Pies', 'Snowballs',
   'Holly', 'Reindeer', 'Pudding', 'Stockings', 'Gingerbread', 'Mistletoe'];
 const POLL_MS = 5000;
+const QUIZ_LIMIT = 5; // per person, true/false and multiple choice together (also enforced in add_question)
 
 let me = null;
 let authMode = 'new';
@@ -98,7 +99,7 @@ function showAuth() {
 
 // ---------- tabs ----------
 
-const RENDER = { teams: renderTeams, quiz: renderQuiz, games: renderGames, admin: renderAdmin };
+const RENDER = { teams: renderTeams, cocktail: renderCocktail, quiz: renderQuiz, games: renderGames, admin: renderAdmin };
 
 async function openTab(name) {
   if (name === 'admin' && !me?.is_admin) name = 'teams';
@@ -276,6 +277,211 @@ async function renderTeams(panel) {
   }, POLL_MS);
 }
 
+// ---------- Team cocktail + shopping list ----------
+
+// Measures for one drink. ml: how much liquid one of that measure is (dashes and pieces are counted, not poured).
+const MEASURES = [
+  { unit: 'ml', label: 'ml', ml: 1 },
+  { unit: 'shot', label: 'shots (30 ml)', ml: 30 },
+  { unit: 'tsp', label: 'teaspoons', ml: 5 },
+  { unit: 'dash', label: 'dashes' },
+  { unit: 'each', label: 'whole / pieces' },
+  { unit: 'top', label: 'to top up' },
+];
+const MEASURE = Object.fromEntries(MEASURES.map(m => [m.unit, m]));
+const TOP_UP_ML = 90;       // a top-up of fizz or mixer, roughly
+const ICE_KG_PER_DRINK = 0.25;
+const CITRUS_ML = 30;       // juice from one lime or lemon
+
+const SPIRIT = /vodka|\bgin\b|\brum\b|tequila|mezcal|whisk(e)?y|bourbon|scotch|brandy|cognac|liqueur|schnapps|vermouth|aperol|campari|cointreau|triple sec|baileys|kahl[uú]a|amaretto|frangelico|midori|malibu|sambuca|j[aä]germeister|chartreuse|absinthe|pimm|galliano|chambord|limoncello|advocaat|butterscotch|cr[eè]me de|ouzo|fireball/i;
+const WINE = /prosecco|champagne|\bcava\b|sparkling|\bwine\b|spumante|moscato|\bport\b|sherry|bubbles/i;
+const BEER = /\b(beer|cider|lager)\b/i;
+const MIXER_BEER = /ginger beer|root beer/i;
+const CITRUS_JUICE = /\b(lime|lemon)\b.*\bjuice\b|\bjuice of\b.*\b(lime|lemon)\b/i;
+
+const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+const possessive = name => name + (/s$/i.test(name) ? "'" : "'s"); // "Sprouts'", "Tinsel's"
+const volume = ml => ml < 1000 ? `${Math.ceil(ml / 10) * 10} ml` : `${(Math.ceil(ml / 100) / 10).toString()} L`;
+
+// "45 ml Vodka", "2 dashes Bitters", "Prosecco to top up"
+function ingredientLine(x) {
+  if (x.unit === 'top') return `${x.item} to top up`;
+  if (x.unit === 'each') return `${x.amount} × ${x.item}`;
+  if (x.unit === 'ml') return `${x.amount} ml ${x.item}`;
+  const label = { shot: ['shot', 'shots'], tsp: ['tsp', 'tsp'], dash: ['dash', 'dashes'] }[x.unit];
+  return `${x.amount} ${x.amount === 1 ? label[0] : label[1]} ${x.item}`;
+}
+
+// What to buy: totals for the number of drinks, rounded up to things you can pick off a shelf.
+// [{key, item, qty, note}]
+function shoppingList(cocktail) {
+  const n = cocktail.servings;
+  const totals = new Map();
+  for (const x of cocktail.ingredients) {
+    const kind = x.unit === 'dash' ? 'dash' : x.unit === 'each' ? 'each' : 'liquid';
+    const key = `${x.item.toLowerCase()}|${kind}`;
+    const amount = kind === 'liquid' ? (x.unit === 'top' ? TOP_UP_ML : x.amount * MEASURE[x.unit].ml) : x.amount;
+    const t = totals.get(key) || { key, item: x.item, kind, total: 0, topUp: false };
+    t.total += amount * n;
+    t.topUp ||= x.unit === 'top';
+    totals.set(key, t);
+  }
+  const list = [...totals.values()].map(t => {
+    const need = volume(t.total);
+    const topNote = t.topUp ? ` (top-ups counted at about ${TOP_UP_ML} ml a drink)` : '';
+    if (t.kind === 'dash') return { ...t, qty: '1 bottle', note: `${Math.ceil(t.total)} dashes; one bottle is plenty` };
+    if (t.kind === 'each') return { ...t, qty: String(Math.ceil(t.total)), note: '' };
+    if (CITRUS_JUICE.test(t.item)) {
+      const fruit = /lemon/i.test(t.item) ? 'lemon' : 'lime';
+      return { ...t, qty: plural(Math.ceil(t.total / CITRUS_ML), fruit), note: `to squeeze ${need} of juice, or buy it bottled` };
+    }
+    const bottle = (size, what) => ({ ...t, qty: `${Math.ceil(t.total / size)} × ${size} ml ${what}`, note: `you need ${need}${topNote}` });
+    if (SPIRIT.test(t.item)) return bottle(700, Math.ceil(t.total / 700) === 1 ? 'bottle' : 'bottles');
+    if (WINE.test(t.item)) return bottle(750, Math.ceil(t.total / 750) === 1 ? 'bottle' : 'bottles');
+    if (BEER.test(t.item) && !MIXER_BEER.test(t.item)) return bottle(375, Math.ceil(t.total / 375) === 1 ? 'can' : 'cans');
+    if (t.total <= 500) return { ...t, qty: need, note: topNote.trim() };
+    return { ...t, qty: `${Math.ceil(t.total / 1000)} L`, note: `you need ${need}${topNote}` };
+  });
+  const bags = Math.ceil((n * ICE_KG_PER_DRINK) / 5);
+  list.push({ key: 'ice', item: 'Ice', qty: `${bags} × 5 kg ${bags === 1 ? 'bag' : 'bags'}`, note: 'about a handful a drink' });
+  return list;
+}
+
+// Shopping list with tick boxes. Ticks are remembered on this phone only.
+function shoppingSlip(teamId, cocktail, title) {
+  const tickKey = `kefu-xmas-shop-${teamId}`;
+  let ticked = new Set();
+  try { ticked = new Set(JSON.parse(store(tickKey) || '[]')); } catch { /* start fresh */ }
+  const items = shoppingList(cocktail);
+
+  const asText = () => [`${title}: shopping list for ${plural(cocktail.servings, 'drink')}`,
+    ...items.map(x => `- ${x.item}: ${x.qty}`)].join('\n');
+  const share = async () => {
+    const text = asText();
+    if (navigator.share) {
+      try { await navigator.share({ text }); } catch { /* they closed the share sheet */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast('Shopping list copied');
+    }
+  };
+
+  return h('section', { class: 'card stack' },
+    h('h2', {}, 'Shopping list'),
+    h('p', { class: 'lede' }, `Everything for ${plural(cocktail.servings, 'drink')}, rounded up to whole bottles. Tick things off as you buy them.`),
+    h('ul', { class: 'plain shop' }, items.map(x => {
+      const box = h('input', { type: 'checkbox', checked: ticked.has(x.key) });
+      box.addEventListener('change', () => {
+        box.checked ? ticked.add(x.key) : ticked.delete(x.key);
+        store(tickKey, JSON.stringify([...ticked]));
+      });
+      return h('li', {}, h('label', { class: 'shop-item' }, box,
+        h('span', { class: 'shop-text' },
+          h('span', { class: 'shop-name' }, x.item),
+          h('span', { class: 'shop-qty' }, x.qty),
+          x.note && h('span', { class: 'shop-note' }, x.note))));
+    })),
+    h('button', { class: 'btn', type: 'button', onclick: busy(share) }, navigator.share ? 'Send the list' : 'Copy the list'));
+}
+
+// The recipe slip: name, what goes in one drink and how to make it.
+function recipeSlip(view, onEdit) {
+  const c = view.cocktail;
+  return h('section', { class: 'prize recipe', style: `--team:${teamColour(view.colour)}` },
+    h('p', { class: 'recipe-team' }, `${possessive(view.team_name)} signature cocktail`),
+    h('h2', {}, c.name),
+    h('ul', { class: 'plain recipe-list' }, c.ingredients.map(x => h('li', {}, ingredientLine(x)))),
+    c.method && h('p', { class: 'recipe-method' }, c.method),
+    h('p', { class: 'q-meta' }, `For one drink · Last changed by ${c.updated_by || 'a teammate'}`),
+    h('button', { class: 'btn ghost small', type: 'button', onclick: onEdit }, 'Change the recipe'));
+}
+
+function cocktailForm(view, onSaved, onCancel) {
+  const c = view.cocktail;
+  let rows = c ? c.ingredients.map(x => ({ ...x })) : [{ amount: 45, unit: 'ml', item: '' }, { amount: null, unit: 'top', item: '' }];
+  const name = h('input', { id: 'ct-name', maxlength: 40, value: c?.name || '', placeholder: 'e.g. The Grinch Sour', autocapitalize: 'words' });
+  const method = h('textarea', { id: 'ct-method', maxlength: 600, placeholder: 'e.g. Shake the first three with ice, strain into a glass and top with prosecco.' });
+  method.value = c?.method || '';
+  const servings = h('input', { id: 'ct-servings', type: 'number', inputmode: 'numeric', min: 1, max: 200, value: c?.servings || view.guests || 20 });
+  const list = h('div', { class: 'stack' });
+
+  function drawRows() {
+    fill(list, rows.map((r, i) => {
+      const item = h('input', { maxlength: 60, value: r.item, placeholder: i === 0 ? 'e.g. Vodka' : 'Ingredient', 'aria-label': `Ingredient ${i + 1}`, autocapitalize: 'sentences' });
+      const amount = h('input', {
+        type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: r.unit === 'top' ? '' : (r.amount ?? ''),
+        disabled: r.unit === 'top', placeholder: r.unit === 'top' ? '–' : 'Amount', 'aria-label': `Amount of ingredient ${i + 1}`,
+      });
+      const unit = h('select', { 'aria-label': `Measure for ingredient ${i + 1}` },
+        MEASURES.map(m => h('option', { value: m.unit, selected: m.unit === r.unit }, m.label)));
+      item.addEventListener('input', () => { r.item = item.value; });
+      amount.addEventListener('input', () => { r.amount = amount.value === '' ? null : Number(amount.value); });
+      unit.addEventListener('change', () => { r.unit = unit.value; drawRows(); });
+      return h('div', { class: 'ing-row' }, item, amount, unit,
+        rows.length > 1 && h('button', {
+          class: 'btn ghost small', type: 'button', 'aria-label': `Remove ingredient ${i + 1}`,
+          onclick: () => { rows.splice(i, 1); drawRows(); },
+        }, icon('minus')));
+    }));
+  }
+
+  const addRow = h('button', {
+    class: 'btn ghost small', type: 'button',
+    onclick: () => {
+      if (rows.length >= 12) return toast('Twelve ingredients is the most.', true);
+      rows.push({ amount: null, unit: 'ml', item: '' });
+      drawRows();
+      list.lastChild.querySelector('input').focus();
+    },
+  }, 'Add another ingredient');
+
+  const submit = h('button', { class: 'btn big', type: 'submit' }, c ? 'Save changes' : 'Save our cocktail');
+  const form = h('form', { class: 'card stack', novalidate: true },
+    h('h2', {}, c ? 'Change your cocktail' : `${possessive(view.team_name)} signature cocktail`),
+    !c && h('p', { class: 'lede' }, 'Pick a drink for your team and name it. Put in what goes into one glass and you get a shopping list for the lot. Anyone in your team can change it.'),
+    h('label', { for: 'ct-name' }, 'Cocktail name'), name,
+    h('p', { class: 'label' }, 'What goes in one drink'),
+    list, addRow,
+    h('label', { for: 'ct-method' }, 'How to make it (optional)'), method,
+    h('label', { for: 'ct-servings' }, 'How many drinks to buy for'), servings,
+    h('p', { class: 'hint' }, `We've put one for everyone coming. Change it if you're making more.`),
+    h('div', { class: 'row' }, submit, onCancel && h('button', { class: 'btn ghost', type: 'button', onclick: onCancel }, 'Cancel')));
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const filled = rows.filter(r => r.item.trim());
+    submit.disabled = true;
+    try {
+      await call('cocktail_save', {
+        p_name: name.value, p_method: method.value, p_servings: Number(servings.value),
+        p_ingredients: filled.map(r => ({ item: r.item, unit: r.unit, amount: r.unit === 'top' ? null : r.amount })),
+      });
+      toast('Cocktail saved. Cheers!');
+      onSaved();
+    } catch (err) { toast(err.message, true); } finally { submit.disabled = false; }
+  });
+
+  drawRows();
+  return form;
+}
+
+async function renderCocktail(panel, editing = false) {
+  const view = await call('cocktail_view');
+  if (!view.spun) {
+    return fill(panel, h('section', { class: 'my-team' },
+      h('h2', {}, 'Spin for your team first'),
+      h('p', {}, "Each team picks a signature cocktail. Once you know your team, come back here to choose yours."),
+      h('button', { class: 'btn', type: 'button', onclick: () => openTab('teams') }, 'Go to Teams')));
+  }
+  const again = () => renderCocktail(panel);
+  if (!view.cocktail || editing) {
+    return fill(panel, cocktailForm(view, again, view.cocktail && again));
+  }
+  fill(panel,
+    recipeSlip(view, () => renderCocktail(panel, true)),
+    shoppingSlip(view.team_id, view.cocktail, view.cocktail.name));
+}
+
 // ---------- Quiz ----------
 
 // Shrink a phone photo to a JPEG data URL small enough to store (well under 700 KB).
@@ -317,6 +523,7 @@ function questionCard(x, n, actions) {
 
 async function renderQuiz(panel) {
   const mine = await call('my_questions');
+  const left = QUIZ_LIMIT - mine.length;
   let kind = 'mc';
   let photo = null;
 
@@ -369,6 +576,9 @@ async function renderQuiz(panel) {
   const form = h('form', { class: 'card stack' },
     h('h2', {}, 'Add a quiz question'),
     h('p', { class: 'lede' }, 'Only you and the quizmaster can see your questions, so no peeking.'),
+    h('p', { class: 'label' }, left === 1
+      ? 'You can add 1 more question.'
+      : `You can add ${left} more questions (true/false and multiple choice both count).`),
     h('p', { class: 'label' }, 'Question type'), typeSwitch,
     h('label', { for: 'quiz-q' }, 'Question'), q,
     photoInput, photoBox,
@@ -390,13 +600,17 @@ async function renderQuiz(panel) {
   });
 
   drawTypeSwitch(); drawAnswers(); drawPhoto();
-  fill(panel, 
-    form,
-    h('h3', {}, mine.length ? `Your questions (${mine.length})` : 'Your questions'),
+  fill(panel,
+    left > 0
+      ? form
+      : h('section', { class: 'card stack' },
+          h('h2', {}, "That's your 5 questions"),
+          h('p', { class: 'lede' }, 'Thanks! Everyone writes up to 5. To swap one for a better one, delete it below and the form comes back.')),
+    h('h3', {}, mine.length ? `Your questions (${mine.length} of ${QUIZ_LIMIT})` : 'Your questions'),
     mine.length
       ? h('ol', { class: 'q-list' }, mine.map((x, i) => questionCard(x, i + 1,
           confirmButton('Delete', async () => { await call('delete_question', { p_id: x.id }); renderQuiz(panel); }))))
-      : h('p', { class: 'hint' }, "You haven't added any yet. Two or three each is plenty."),
+      : h('p', { class: 'hint' }, `You haven't added any yet. You can write up to ${QUIZ_LIMIT}.`),
   );
 }
 
@@ -639,7 +853,8 @@ function renameControl(t, done) {
 }
 
 async function renderAdmin(panel) {
-  const [people, view, questions, fullTeams] = await Promise.all([call('people_list'), call('teams_view'), call('all_questions'), call('admin_teams_full')]);
+  const [people, view, questions, fullTeams, cocktails] = await Promise.all([
+    call('people_list'), call('teams_view'), call('all_questions'), call('admin_teams_full'), call('all_cocktails')]);
   const byId = Object.fromEntries(people.map(p => [p.id, p]));
   const teamOf = {};
   view.teams.forEach(t => t.members.forEach(m => { teamOf[m.id] = t.name; }));
@@ -739,12 +954,25 @@ async function renderAdmin(panel) {
         h('ul', {}, t.members.map(m => h('li', { class: m.spun ? '' : 'slot' }, m.full_name))),
         renameControl(t, () => renderAdmin(panel))))));
 
+  const chosen = cocktails.filter(t => t.cocktail);
+  const cocktailBox = cocktails.length > 0 && h('section', { class: 'card stack' },
+    h('h2', {}, 'Team cocktails'),
+    h('p', { class: 'lede' }, `${chosen.length} of ${cocktails.length} teams have picked one. Open a team to see its recipe and shopping list.`),
+    h('ul', { class: 'plain stack' }, cocktails.map(t => h('li', {},
+      t.cocktail
+        ? h('details', { class: 'how' },
+            h('summary', {}, h('span', { class: 'dot', style: `--team:${teamColour(t.colour)}` }), `${t.team_name}: ${t.cocktail.name}`),
+            h('ul', { class: 'rules' }, t.cocktail.ingredients.map(x => h('li', {}, ingredientLine(x)))),
+            t.cocktail.method && h('p', {}, t.cocktail.method),
+            h('ul', { class: 'rules' }, shoppingList(t.cocktail).map(x => h('li', {}, `Buy ${x.item}: ${x.qty}`))))
+        : h('p', { class: 'admin-cocktail-none' }, h('span', { class: 'dot', style: `--team:${teamColour(t.colour)}` }), `${t.team_name}: not picked yet`)))));
+
   const backupBox = h('section', { class: 'card stack' },
     h('h2', {}, 'Backup'),
-    h('p', { class: 'lede' }, 'Saves everything (guests, teams, quiz questions with photos, votes, the bracket and scores) to a file on this device. PINs are left out. Keep the file private, since it has everyone\'s names.'),
+    h('p', { class: 'lede' }, 'Saves everything (guests, teams, cocktails, quiz questions with photos, votes, the bracket and scores) to a file on this device. PINs are left out. Keep the file private, since it has everyone\'s names.'),
     h('button', { class: 'btn', type: 'button', onclick: busy(downloadBackup) }, 'Download a backup'));
 
-  fill(panel, drawBox, fullBox, tvBox, peopleBox, quizBox, backupBox);
+  fill(panel, drawBox, fullBox, tvBox, cocktailBox, peopleBox, quizBox, backupBox);
 }
 
 // ---------- start ----------

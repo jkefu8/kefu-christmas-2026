@@ -1,6 +1,6 @@
 # Kefu Christmas 2026
 
-Family Christmas site: name + 4-digit PIN login (guest list only), spin-wheel team reveal (teams of three, partners split), true/false and 4-choice quiz questions with optional photos, game votes with how-to-play illustrations (`art.js`).
+Family Christmas site: name + 4-digit PIN login (guest list only), spin-wheel team reveal (teams of three, partners split), a signature cocktail per team with an auto shopping list (`shoppingList` in app.js), true/false and 4-choice quiz questions with optional photos (max 5 per person, enforced in `add_question`), game votes with how-to-play illustrations (`art.js`).
 
 - Static site (`index.html`, `style.css`, `app.js`, `config.js`) on GitHub Pages; no build step.
 - Supabase backend. **All tables are RLS-locked with no grants**; the browser only calls `security definer` functions in `supabase/schema.sql`, each taking `p_token` and checking it via `_person()` / `_admin()`. Any new feature = new function + `grant execute ... to anon`. Never add table policies or grants.

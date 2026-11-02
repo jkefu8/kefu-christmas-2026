@@ -20,7 +20,7 @@ It is built for this family only: their guest list, nicknames, partners kept on 
 
 ## Operating Context
 
-- Phones in the weeks before: sign up, spin for a team, add quiz questions (true/false or 4-choice, optional photo), vote on games.
+- Phones in the weeks before: sign up, spin for a team, pick the team's signature cocktail and get a shopping list for it, add up to 5 quiz questions (true/false or 4-choice, optional photo), vote on games.
 - Christmas Day: a laptop connected to the living-room TV shows the quiz screen (`tv.html`). Teams shout or write their answers, and the organiser awards points. Phones follow the Beer Pong bracket live.
 - The organiser uses the Organiser tab for the guest list, PIN resets, the secret team draw, revealing the remaining teams at the end of November, and the bracket.
 

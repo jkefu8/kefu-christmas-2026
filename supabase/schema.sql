@@ -103,6 +103,18 @@ create table if not exists tournament (
   updated_at timestamptz not null default now()
 );
 
+-- v7: each team's signature cocktail. ingredients = [{amount, unit, item}] for one drink;
+-- servings = how many drinks the shopping list is for.
+create table if not exists team_cocktails (
+  team_id     int primary key references teams on delete cascade,
+  name        text not null,
+  ingredients jsonb not null default '[]',
+  method      text,
+  servings    int not null default 20,
+  updated_by  uuid references people on delete set null,
+  updated_at  timestamptz not null default now()
+);
+
 alter table people         enable row level security;
 alter table sessions       enable row level security;
 alter table teams          enable row level security;
@@ -113,6 +125,7 @@ alter table votes          enable row level security;
 alter table quiz_night     enable row level security;
 alter table quiz_scores    enable row level security;
 alter table tournament     enable row level security;
+alter table team_cocktails enable row level security;
 
 revoke all on all tables    in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
@@ -388,6 +401,10 @@ returns void
 language plpgsql security definer set search_path = public, extensions as $$
 declare p people := _person(p_token); v_opts jsonb;
 begin
+  perform 1 from people where id = p.id for update; -- so two quick taps can't both slip under the limit
+  if (select count(*) from quiz_questions where person_id = p.id) >= 5 then
+    raise exception 'You''ve written your 5 questions. Delete one to add another.';
+  end if;
   if length(trim(coalesce(p_question, ''))) < 5 then raise exception 'Please write a question.'; end if;
   if length(p_question) > 500 then raise exception 'That question is a bit long. Keep it under 500 characters.'; end if;
   if p_kind = 'tf' then
@@ -587,6 +604,79 @@ begin
   on conflict (id) do update set seeds = excluded.seeds, results = excluded.results, updated_at = now();
 end $$;
 
+-- ---------- team cocktails ----------
+
+-- The caller's team and its cocktail. Only people who have spun see their team's.
+-- {spun: false} or {spun, team_id, team_name, colour (team position), guests, cocktail: {...} | null}
+create or replace function cocktail_view(p_token uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare p people := _person(p_token); v_team int;
+begin
+  select team_id into v_team from team_members where person_id = p.id and revealed;
+  if v_team is null then return jsonb_build_object('spun', false); end if;
+  return jsonb_build_object(
+    'spun', true,
+    'team_id', v_team,
+    'team_name', (select name from teams where id = v_team),
+    'colour', (select count(*) from teams where id < v_team),
+    'guests', (select count(*) from team_members),
+    'cocktail', (select jsonb_build_object('name', c.name, 'ingredients', c.ingredients, 'method', c.method,
+                                           'servings', c.servings, 'updated_by', pe.full_name, 'updated_at', c.updated_at)
+                 from team_cocktails c left join people pe on pe.id = c.updated_by
+                 where c.team_id = v_team));
+end $$;
+
+-- Anyone in the team (once they've spun) can set or change its cocktail.
+-- p_ingredients: [{"amount": 45, "unit": "ml", "item": "Vodka"}, ...] for one drink.
+create or replace function cocktail_save(p_token uuid, p_name text, p_ingredients jsonb, p_method text, p_servings int)
+returns void
+language plpgsql security definer set search_path = public, extensions as $$
+declare p people := _person(p_token); v_team int; v_name text := _clean_name(p_name); v_list jsonb; x jsonb;
+begin
+  select team_id into v_team from team_members where person_id = p.id and revealed;
+  if v_team is null then raise exception 'Spin for your team first.'; end if;
+  if length(v_name) < 2 or length(v_name) > 40 then raise exception 'Give your cocktail a name (up to 40 characters).'; end if;
+  if jsonb_typeof(p_ingredients) is distinct from 'array' or jsonb_array_length(p_ingredients) = 0 then
+    raise exception 'Add at least one ingredient.';
+  end if;
+  if jsonb_array_length(p_ingredients) > 12 then raise exception 'Twelve ingredients is the most.'; end if;
+  v_list := '[]';
+  for x in select * from jsonb_array_elements(p_ingredients) loop
+    if length(_clean_name(x->>'item')) not between 1 and 60 then
+      raise exception 'Every ingredient needs a name (up to 60 characters).';
+    end if;
+    if coalesce(x->>'unit', '') not in ('ml', 'shot', 'dash', 'tsp', 'each', 'top') then
+      raise exception 'Choose a measure for %.', _clean_name(x->>'item');
+    end if;
+    if x->>'unit' <> 'top' and coalesce(case when jsonb_typeof(x->'amount') = 'number' then (x->>'amount')::numeric end, 0)
+                               not between 0.01 and 1000 then
+      raise exception 'Put an amount for %.', _clean_name(x->>'item');
+    end if;
+    v_list := v_list || jsonb_build_array(jsonb_build_object(
+      'amount', case when x->>'unit' = 'top' then null else round((x->>'amount')::numeric, 2) end,
+      'unit', x->>'unit', 'item', _clean_name(x->>'item')));
+  end loop;
+  if length(coalesce(p_method, '')) > 600 then raise exception 'Keep the method under 600 characters.'; end if;
+  if p_servings is null or p_servings < 1 or p_servings > 200 then raise exception 'Make between 1 and 200 drinks.'; end if;
+  insert into team_cocktails (team_id, name, ingredients, method, servings, updated_by, updated_at)
+  values (v_team, v_name, v_list, nullif(trim(p_method), ''), p_servings, p.id, now())
+  on conflict (team_id) do update set name = excluded.name, ingredients = excluded.ingredients, method = excluded.method,
+                                      servings = excluded.servings, updated_by = excluded.updated_by, updated_at = now();
+end $$;
+
+-- Organiser: every team's cocktail, so one person can do the shopping. [{team_id, team_name, colour, cocktail}]
+create or replace function all_cocktails(p_token uuid) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  perform _admin(p_token);
+  return coalesce((select jsonb_agg(jsonb_build_object(
+                     'team_id', t.id, 'team_name', t.name, 'colour', (select count(*) from teams o where o.id < t.id),
+                     'cocktail', (select jsonb_build_object('name', c.name, 'ingredients', c.ingredients, 'method', c.method,
+                                                            'servings', c.servings)
+                                  from team_cocktails c where c.team_id = t.id)) order by t.id)
+                   from teams t), '[]');
+end $$;
+
 -- ---------- organiser tools ----------
 
 create or replace function admin_add_guest(p_token uuid, p_name text, p_partner_id uuid) returns void
@@ -638,7 +728,8 @@ begin
     'votes', coalesce((select jsonb_agg(to_jsonb(v)) from votes v), '[]'),
     'tournament', (select to_jsonb(x) from tournament x where id = 1),
     'quiz_night', (select to_jsonb(x) from quiz_night x where id = 1),
-    'quiz_scores', coalesce((select jsonb_agg(to_jsonb(x)) from quiz_scores x), '[]'));
+    'quiz_scores', coalesce((select jsonb_agg(to_jsonb(x)) from quiz_scores x), '[]'),
+    'team_cocktails', coalesce((select jsonb_agg(to_jsonb(x) order by x.team_id) from team_cocktails x), '[]'));
 end $$;
 
 -- ---------- who may call what ----------
@@ -653,5 +744,6 @@ grant execute on function
   quiz_night_get(uuid), quiz_night_set(uuid, jsonb, int, boolean), quiz_scores_view(uuid),
   quiz_score_add(uuid, int, int), quiz_scores_reset(uuid),
   tournament_view(uuid), tournament_set(uuid, jsonb, jsonb), admin_teams_full(uuid),
-  rename_team(uuid, int, text), admin_export(uuid)
+  rename_team(uuid, int, text), admin_export(uuid),
+  cocktail_view(uuid), cocktail_save(uuid, text, jsonb, text, int), all_cocktails(uuid)
 to anon;
